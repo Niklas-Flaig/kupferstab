@@ -2,9 +2,9 @@
 task: "Board #262 · Stab ins Handy-WLAN, Updates von GitHub"
 spec:
 tier: large
-approval: open
-approved_at:
-approved_hash:
+approval: granted
+approved_at: 2026-10-31
+approved_hash: 965b28c33b514d275a44b7e08955d756b365d10d # git blob of the approved version (70da624)
 ---
 
 # 0002 · Stab bucht sich ins Handy-WLAN ein und holt Updates von GitHub
@@ -162,6 +162,19 @@ gegen `firmware-pwa`.
 | --- | --- | --- |
 | App-Update dateiweise statt LittleFS-Image | Das Image ist 2 MB groß, die App nur ~12 KB. Ein abgebrochenes Image-Update würde die App löschen. | `littlefs.bin` über `ESPhttpUpdate.updateFS` |
 | `releases/latest/download/…` statt GitHub-API | keine JSON-Antwort von 10 KB parsen, kein Rate-Limit | `api.github.com/repos/…/releases/latest` |
+| **Freigabe 2026-10-31:** Q1 b, Q2 a, Q3 b (Android); C1 ✓; C2 ✗ („wahrscheinlich ja nicht … wegen Android??“) | | |
+| Q1 b: Stab prüft selbst, installiert nur auf „Version … installieren“ in der App | Antwort Q1 | automatisch |
+| Antwort auf C2: Die Verknüpfung auf dem Home-Bildschirm hängt an der Adresse. Auf Android ist das die IP, die der Hotspot vergibt, und die kann sich ändern | Auf Android 12 und älter löst der Browser `kupferstab.local` oft nicht auf, ab Android 13 meistens schon (Forenberichte, keine offizielle Quelle) | – |
+| Stab merkt sich seine letzte Hotspot-IP (`lastStaIp`) und zeigt sie im eigenen WLAN in der App an; der Strip zeigt beim Anmelden die letzte Zahl als LED-Gruppen statt zu blinken | Gruppen kann man ablesen, Blinken muss man zählen | Blinken der Ziffern |
+| Signatur nur auf dem GitHub-Weg (`Update.installSignature` davor gesetzt, danach gelöscht) | Upload in der App und `espota` gehen nur aus dem eigenen WLAN oder dem Hotspot und sollen mit lokalen Builds ohne Schlüssel funktionieren | Signatur für alle Wege |
+| App-Dateien über SHA-256 aus dem signierten Manifest, das Manifest selbst signiert (`manifest.sig`) | Eine Signatur deckt alles ab, auch die App | App-Dateien ungeprüft |
+| TLS mit `setInsecure()` | Die Echtheit sichert die Signatur, nicht TLS. Eingebaute CA-Zertifikate würden beim nächsten Zertifikatswechsel von GitHub alle Updates stoppen. | Root-CAs in der Firmware |
+| Privater Schlüssel zusätzlich unter `~/.config/kupferstab/signing.key` (600) | Ohne Kopie wäre er nur im Secret, das man nicht zurücklesen kann | nur Secret |
+| `FW_VERSION` aus `PLATFORMIO_BUILD_FLAGS`, lokal `0.1.0-dev`; Release `0.<run+1>.0` | Version kommt nur aus der Action, der Vergleich ignoriert `-dev` | Version von Hand in `platformio.ini` |
+| `bun.lock` im Format von Bun 1.3.11 committet (war lokal schon so geändert) | Die Action pinnt Bun 1.3.11 und baut mit `--frozen-lockfile` | Lockfile v2 einer neueren Bun-Version |
+| **Abweichung:** Ein Probelauf der Action über einen vorübergehenden Push-Trigger auf diesem Branch | „Run workflow“ zeigt GitHub erst, wenn die Datei auf `main` liegt; so ist die Action schon vor dem Merge geprüft | erst nach dem Merge testen |
+| Die Prüfung blockiert den Loop etwa 2–5 s (TLS); das Licht steht dabei kurz | Alle 30 min ist das vertretbar, der ESP8266 hat keinen zweiten Kern | Prüfen nur auf Knopfdruck |
+| _backlog_: „Run workflow“ erscheint erst, wenn PR #3 und dieser PR auf `main` sind | | |
 
 ## 5. Doku-Folgen
 

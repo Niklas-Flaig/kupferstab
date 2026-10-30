@@ -2,23 +2,36 @@
 
 Firmware und Handy-App für den leuchtenden Kupferstab: Ein Wemos D1 mini (ESP8266) steuert einen
 NeoPixel-Strip, der durch Löcher in Kupferrohren leuchtet. Gesteuert wird er vom Handy aus, Updates
-kommen over the air.
+holt er sich selbst von GitHub.
 
 ## So funktioniert es auf der Party
 
-1. Stab einschalten. Er spannt das WLAN **„Kupferstab“** auf (Passwort `kupferstab`).
-2. Mit dem Handy verbinden. Die App öffnet sich von selbst. Falls nicht: **http://192.168.4.1**
-   im Browser öffnen.
+1. **Hotspot am Handy einschalten**, dann den Stab. Er meldet sich innerhalb von ein paar Sekunden
+   an. Der Strip zeigt dabei kurz die letzte Zahl seiner Adresse, grüne LEDs je Ziffer und eine
+   blaue für 0.
+2. Im Browser **http://kupferstab.local** öffnen. Geht das nicht (manche Android-Handys), nimm die
+   Adresse aus „Einstellungen → Handy-Hotspot“. Steht sie dort noch nicht, ist es die
+   Hotspot-Adresse mit der Zahl vom Strip am Ende.
 3. Für das Gefühl einer echten App: im Browser auf „Teilen → Zum Home-Bildschirm“ (iPhone) bzw.
    „⋮ → Zum Startbildschirm hinzufügen“ (Android) tippen. Danach startet sie im Vollbild.
 
+**Beim ersten Mal, oder wenn er den Hotspot nicht findet:** Der Stab öffnet nach etwa 20 Sekunden
+sein eigenes WLAN **„Kupferstab“** (Passwort `kupferstab`). Verbinde dich, die App öffnet sich von
+selbst (sonst **http://192.168.4.1**). Unter „Einstellungen → Handy-Hotspot“ trägst du Name und
+Passwort deines Hotspots ein und tippst auf „Speichern“. Dann trennst du dich vom Stab und schaltest
+den Hotspot ein. Der Stab sucht alle 30 Sekunden danach, meldet sich an und schließt sein eigenes
+WLAN. Ist der Hotspot später wieder weg, öffnet er nach etwa 30 Sekunden wieder „Kupferstab“.
+
+**Der Stab kann nur 2,4 GHz.** Auf dem iPhone unter „Persönlicher Hotspot“ den Schalter
+„Kompatibilität maximieren“ einschalten. Bei Android steht das Band in den Hotspot-Einstellungen.
+
 <img src="docs/screenshots/main-dark.png" alt="Die App: Farbrad, Helligkeit, Effekte, Szenen" width="260"> <img src="docs/screenshots/settings.png" alt="Einstellungen mit Pin-Suche und Update" width="260">
 
-Der Stab braucht weder Router noch Internet. Mehrere Handys können gleichzeitig steuern und sehen
-die Änderungen der anderen sofort.
+Der Stab braucht kein Internet, nur für Updates. Mehrere Handys können gleichzeitig steuern, wenn
+sie im selben Hotspot sind, und sehen die Änderungen der anderen sofort.
 
 **Bluetooth gibt es nicht:** Der ESP8266 hat keinen Bluetooth-Chip, und auf dem iPhone kann kein
-Browser Bluetooth-Geräte ansprechen. Deshalb läuft alles über das WLAN des Stabs.
+Browser Bluetooth-Geräte ansprechen. Deshalb läuft alles über WLAN.
 
 ## Erstes Flashen (einmalig, per USB)
 
@@ -77,9 +90,22 @@ Die beiden Dateien entstehen mit `pio run -e d1_mini` und `pio run -e d1_mini -t
 Beim Start läuft ein **Kupfer-Lauflicht** über den Strip. Läuft es über alle LEDs, stimmen Pin und
 Anzahl. Wenn nicht, siehe [Fehlersuche](#fehlersuche).
 
-## Updates over the air
+## Updates
 
-**Über die App:** Einstellungen → Update → Datei wählen.
+**Von GitHub, ohne Laptop:** Auf GitHub unter [Actions → Release](https://github.com/Niklas-Flaig/kupferstab/actions/workflows/release.yml)
+auf **„Run workflow“** tippen. Die Action baut Firmware und App, signiert sie und veröffentlicht
+sie als Release mit der nächsten Versionsnummer, nach etwa drei Minuten. Der Stab prüft das selbst:
+nach jeder Anmeldung im Hotspot, alle 30 Minuten und wenn du in der App auf „Nach Updates suchen“
+tippst. Ist eine neue Version da, steht in der App unter Einstellungen → Update der Knopf
+**„Version … installieren“**. Danach startet der Stab neu. Dafür braucht der Hotspot Internet.
+
+Der Stab spielt nur ein, was mit dem Release-Schlüssel signiert ist. Der private Schlüssel liegt als
+Secret `SIGNING_KEY` im Repo und als Kopie unter `~/.config/kupferstab/signing.key` auf dem
+MacBook. Der öffentliche steht in `firmware/src/signing_key.h`. Geht der Schlüssel verloren:
+neues Paar erzeugen, `signing_key.h` und das Secret ersetzen, einmal lokal flashen.
+
+**Über die App, ohne Internet:** Einstellungen → Update → Datei wählen. Die Dateien liegen an jedem
+Release.
 
 - `firmware.bin` aktualisiert die Firmware.
 - `littlefs.bin` aktualisiert die App.
@@ -87,10 +113,11 @@ Anzahl. Wenn nicht, siehe [Fehlersuche](#fehlersuche).
 Der Stab startet danach neu. LED-Anzahl, Pin, WLAN und Szenen bleiben erhalten, auch bei einem
 App-Update.
 
-**Notfall-Seite:** http://192.168.4.1/update ist fest in die Firmware eingebaut. Sie funktioniert
+**Notfall-Seite:** `/update` (z. B. http://192.168.4.1/update) ist fest in die Firmware eingebaut. Sie funktioniert
 also auch dann, wenn die App fehlt oder kaputt ist.
 
-**Vom Laptop:** Der Laptop muss im WLAN des Stabs sein.
+**Vom Laptop:** Der Laptop muss im WLAN des Stabs sein, oder im selben Hotspot (dann
+`--upload-port kupferstab.local` anhängen).
 
 ```sh
 cd firmware
@@ -108,8 +135,8 @@ Alles in der App unter **Einstellungen**, ohne neu zu flashen:
 | Daten-Pin | D4 (GPIO2) | „Nächsten Pin testen“ schaltet live um |
 | Farbreihenfolge | GRB | WS2812B ist GRB; wenn Rot und Grün vertauscht sind: RGB |
 | Helligkeitsgrenze | 40 % | schützt Netzteil und Powerbank |
-| WLAN-Name / Passwort | Kupferstab / kupferstab | **Passwort vor der Party ändern** |
-| Heim-WLAN | leer | optional, fürs Entwickeln; der Stab bleibt zusätzlich im eigenen WLAN erreichbar, im Heim-WLAN unter `http://kupferstab.local` |
+| Handy-Hotspot | leer | Name und Passwort; gilt sofort, ohne Neustart. Geht auch mit dem Heim-WLAN, wenn es 2,4 GHz hat |
+| Eigenes WLAN (Rückfall) | Kupferstab / kupferstab | **Passwort vor der Party ändern**; startet den Stab neu |
 
 Das OTA-Passwort für den Laptop ist `kupferstab`. Ändern lässt es sich über das Protokoll
 (`otaPass`), siehe [docs/protocol.md](docs/protocol.md).
@@ -123,7 +150,10 @@ Das OTA-Passwort für den Laptop ist `kupferstab`. Ändern lässt es sich über 
 | Rot und Grün vertauscht | Farbreihenfolge auf RGB stellen. |
 | Flackern, zufällige Farben | Datenleitung zu lang oder Pegel zu niedrig: 330-Ω-Widerstand in die Datenleitung, besser ein Pegelwandler 3,3 V → 5 V (z. B. 74AHCT125). |
 | Wird rot/orange bei Weiß, ESP startet neu | Netzteil zu schwach: Helligkeitsgrenze senken oder 5 V auch am anderen Strip-Ende einspeisen. |
-| WLAN „Kupferstab“ taucht nicht auf | D1 mini neu starten; nach einer WLAN-Änderung heißt das Netz so, wie du es eingestellt hast. |
+| WLAN „Kupferstab“ taucht nicht auf | Der Stab ist wahrscheinlich in deinem Hotspot: `http://kupferstab.local` öffnen. Sonst D1 mini neu starten; nach einer Änderung heißt das Netz so, wie du es eingestellt hast. |
+| „Kupferstab“ geht immer wieder auf, obwohl der Hotspot an ist | Hotspot auf 5 GHz: „Kompatibilität maximieren“ (iPhone) bzw. 2,4 GHz einstellen. Sonst Name oder Passwort falsch. |
+| `kupferstab.local` öffnet nichts | Android 12 und älter kennen `.local` oft nicht. Die Adresse steht unter Einstellungen → Handy-Hotspot, und der Strip zeigt beim Anmelden die letzte Zahl. |
+| „Update auf GitHub nicht richtig signiert“ | Das Secret `SIGNING_KEY` passt nicht zu `firmware/src/signing_key.h`. Das Release-Skript prüft das eigentlich vorher. |
 | Passwort vergessen | Neu per USB flashen. Die Einstellungen bleiben dabei erhalten, deshalb vorher mit `pio run -t erase` den Flash löschen. |
 
 ## Entwickeln
@@ -136,6 +166,7 @@ bun test           # Protokoll und Hilfsfunktionen
 bun run typecheck
 bun run fw         # Firmware bauen
 bun run fs         # App bauen + Dateisystem-Image
+SIGNING_KEY_FILE=~/.config/kupferstab/signing.key bun run release 0.2.0   # Release-Dateien nach release/
 ```
 
 Der simulierte Stab spricht dasselbe Protokoll wie die Firmware. Damit lässt sich die App ohne
