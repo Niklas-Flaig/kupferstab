@@ -123,7 +123,7 @@ Alles in der App unter **Einstellungen**, ohne neu zu flashen:
 | Farbreihenfolge | GRB | WS2812B ist GRB; wenn Rot und Grün vertauscht sind: RGB |
 | Helligkeitsgrenze | 40 % | schützt Netzteil und Powerbank |
 | WLAN-Name / Passwort | Kupferstab / kupferstab | **Passwort vor der Party ändern** |
-| Heim-WLAN | leer | optional, für Updates von GitHub (2,4 GHz, auch ein Handy-Hotspot); der Stab bleibt zusätzlich im eigenen WLAN erreichbar, im Heim-WLAN unter `http://kupferstab.local` |
+| Heim-WLAN | leer | optional, für Updates von GitHub (2,4 GHz, auch ein Handy-Hotspot); der Stab bleibt zusätzlich im eigenen WLAN erreichbar, im Heim-WLAN unter `http://kupferstab.local`. Er versucht es nur, wenn es in Reichweite ist (Suche jede Minute), sonst stört es „Kupferstab“ |
 
 Das OTA-Passwort für den Laptop ist `kupferstab`. Ändern lässt es sich über das Protokoll
 (`otaPass`), siehe [docs/protocol.md](docs/protocol.md).
@@ -137,6 +137,7 @@ Das OTA-Passwort für den Laptop ist `kupferstab`. Ändern lässt es sich über 
 | Rot und Grün vertauscht | Farbreihenfolge auf RGB stellen. |
 | Flackern, zufällige Farben | Datenleitung zu lang oder Pegel zu niedrig: 330-Ω-Widerstand in die Datenleitung, besser ein Pegelwandler 3,3 V → 5 V (z. B. 74AHCT125). |
 | Wird rot/orange bei Weiß, ESP startet neu | Netzteil zu schwach: Helligkeitsgrenze senken oder 5 V auch am anderen Strip-Ende einspeisen. |
+| Mit „Kupferstab“ verbinden klappt nicht oder bricht ab | Bis Firmware 0.3.0: ein eingetragenes Heim-WLAN, das nicht da ist, lässt den ESP ständig Kanäle wechseln. Neuere Firmware versucht es nur, wenn es in Reichweite ist. |
 | WLAN „Kupferstab“ taucht nicht auf | D1 mini neu starten; nach einer WLAN-Änderung heißt das Netz so, wie du es eingestellt hast. |
 | „Update auf GitHub nicht richtig signiert“ | Das Secret `SIGNING_KEY` passt nicht zu `firmware/src/signing_key.h`. Das Release-Skript prüft das eigentlich vorher. |
 | „Für Updates braucht der Stab ein WLAN mit Internet“ | Kein Heim-WLAN eingetragen, oder es ist nicht erreichbar (5 GHz?). |

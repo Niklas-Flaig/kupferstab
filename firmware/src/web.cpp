@@ -28,6 +28,15 @@ bool broadcastDue = false;
 uint32_t restartAt = 0;
 uint32_t lastClientCleanup = 0;
 
+// Home Wi-Fi. The ESP8266 has one radio: while its station keeps retrying a network that is not
+// there, it hops channels and phones can no longer join the own Wi-Fi. So it only tries when a
+// scan has seen the network, and gives up after a while until the next scan.
+constexpr uint32_t kHomeScanEveryMs = 60000;
+constexpr uint32_t kHomeJoinTimeoutMs = 20000;
+uint32_t homeLastScan = 0;
+uint32_t homeJoinSince = 0;  // 0 while not trying
+bool homeScanning = false;
+
 // Update upload in progress
 bool updateFailed = false;
 String updateError;
@@ -211,11 +220,48 @@ void setupWifi() {
   WiFi.mode(c.staSsid.length() ? WIFI_AP_STA : WIFI_AP);
   WiFi.softAPConfig(kApIp, kApIp, IPAddress(255, 255, 255, 0));
   WiFi.softAP(c.apSsid.c_str(), c.apPass.length() >= 8 ? c.apPass.c_str() : nullptr);
-  if (c.staSsid.length()) WiFi.begin(c.staSsid.c_str(), c.staPass.c_str());
+  WiFi.setAutoReconnect(false);  // reconnecting is homeLoop()'s job
+  homeLastScan = millis() - kHomeScanEveryMs;  // look right after start
   dns.setErrorReplyCode(DNSReplyCode::NoError);
   dns.start(53, "*", kApIp);
   MDNS.begin(kHostname);
   MDNS.addService("http", "tcp", 80);
+}
+
+void onHomeScan(int found) {
+  homeScanning = false;
+  for (int i = 0; i < found; i++) {
+    if (WiFi.SSID(i) == store.config.staSsid) {
+      WiFi.begin(store.config.staSsid.c_str(), store.config.staPass.c_str());
+      homeJoinSince = millis();
+      Serial.printf("Home Wi-Fi \"%s\" in range, joining\n", store.config.staSsid.c_str());
+      break;
+    }
+  }
+  WiFi.scanDelete();
+}
+
+void homeLoop() {
+  if (!store.config.staSsid.length()) return;
+  const uint32_t now = millis();
+  if (WiFi.status() == WL_CONNECTED) {
+    if (homeJoinSince) Serial.printf("Home Wi-Fi: %s\n", WiFi.localIP().toString().c_str());
+    homeJoinSince = 0;
+    homeLastScan = now;
+    return;
+  }
+  if (homeJoinSince) {
+    if (now - homeJoinSince < kHomeJoinTimeoutMs) return;
+    Serial.println("Home Wi-Fi: no connection, giving up until the next scan");
+    WiFi.disconnect();  // stops the station's retries and with them the channel hopping
+    homeJoinSince = 0;
+    homeLastScan = now;
+  }
+  if (!homeScanning && now - homeLastScan > kHomeScanEveryMs) {
+    homeLastScan = now;
+    homeScanning = true;
+    WiFi.scanNetworksAsync(onHomeScan);
+  }
 }
 
 void setupOta() {
@@ -289,6 +335,7 @@ void notifyAll(const char* message) {
 }
 
 void loop() {
+  homeLoop();
   dns.processNextRequest();
   MDNS.update();
   ArduinoOTA.handle();
