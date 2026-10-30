@@ -35,8 +35,12 @@ let config: Config = {
   order: "GRB",
   maxBri: 102,
   apSsid: "Kupferstab",
-  staSsid: "",
+  staSsid: "Niklas’ Handy",
 };
+
+// The mock pretends to be in the hotspot; MOCK_MODE=ap shows the fallback instead.
+const mode = process.env.MOCK_MODE === "ap" ? "ap" : "sta";
+let update = "";
 
 const clients = new Set<import("bun").ServerWebSocket<unknown>>();
 
@@ -50,8 +54,11 @@ function snapshot(): Snapshot {
       fw: "0.1.0-mock",
       heap: 23456,
       uptime: Math.floor((Date.now() - started) / 1000),
-      apIp: "192.168.4.1",
-      staIp: "",
+      mode,
+      apIp: mode === "ap" ? "192.168.4.1" : "",
+      staIp: mode === "sta" ? "192.168.43.17" : "",
+      lastStaIp: "192.168.43.17",
+      update,
       clients: clients.size,
       app: true,
     },
@@ -77,7 +84,7 @@ function handle(ws: import("bun").ServerWebSocket<unknown>, msg: ClientMessage) 
       return broadcast();
     case "config": {
       const { apPass, staPass, otaPass, ...rest } = msg.config;
-      const wifi = (rest.apSsid && rest.apSsid !== config.apSsid) || apPass || staPass || otaPass;
+      const wifi = (rest.apSsid && rest.apSsid !== config.apSsid) || apPass || otaPass;
       config = { ...config, ...rest };
       if (wifi)
         ws.send(JSON.stringify({ t: "notice", message: "Gespeichert. Der Stab startet neu, verbinde dich danach wieder." }));
@@ -90,6 +97,15 @@ function handle(ws: import("bun").ServerWebSocket<unknown>, msg: ClientMessage) 
     case "reboot":
       console.log("[mock] reboot");
       return;
+    case "checkUpdate":
+      update = "0.2.0";
+      for (const c of clients) c.send(JSON.stringify({ t: "notice", message: "Version 0.2.0 ist verfügbar. Installieren unter Einstellungen → Update." }));
+      return broadcast();
+    case "installUpdate":
+      console.log("[mock] install", update);
+      for (const c of clients) c.send(JSON.stringify({ t: "notice", message: `Installiere Version ${update} … Der Stab startet danach neu.` }));
+      update = "";
+      return broadcast();
   }
 }
 

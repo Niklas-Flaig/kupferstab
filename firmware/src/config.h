@@ -3,6 +3,10 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 
+#ifndef FW_VERSION
+#define FW_VERSION "0.1.0-dev"
+#endif
+
 // What the light is doing right now. Persisted, so the staff comes back the
 // way it was switched off.
 struct LightState {
@@ -23,7 +27,7 @@ struct Config {
   uint8_t maxBri = 102;  // 40 %
   String apSsid = "Kupferstab";
   String apPass = "kupferstab";
-  String staSsid;
+  String staSsid;  // the phone's hotspot; the staff joins it and closes its own Wi-Fi
   String staPass;
   String otaPass = "kupferstab";
 };
@@ -37,6 +41,7 @@ struct Store {
   LightState state;
   LightState scenes[kSceneCount];
   bool sceneUsed[kSceneCount] = {false, false, false, false};
+  String lastStaIp;  // the address the hotspot gave the staff last time, shown while it is back on its own Wi-Fi
 };
 
 extern Store store;
@@ -54,5 +59,6 @@ void stateToJson(const LightState& s, JsonObject o);
 // Applies the fields present in `o`; the rest stays.
 void stateFromJson(LightState& s, JsonObjectConst o);
 void configToJson(const Config& c, JsonObject o);  // passwords left out
-// Returns true when a field changed that needs a restart (Wi-Fi).
-bool configFromJson(Config& c, JsonObjectConst o, bool& ledsChanged);
+// Returns true when a field changed that needs a restart (own Wi-Fi, OTA password).
+// staChanged: the hotspot credentials changed; they apply without a restart.
+bool configFromJson(Config& c, JsonObjectConst o, bool& ledsChanged, bool& staChanged);

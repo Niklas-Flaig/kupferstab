@@ -7,6 +7,7 @@ import {
   hsvToHex,
   parseServerMessage,
   updateTarget,
+  wifiStatus,
   type ClientMessage,
   type ConfigPatch,
   type LightState,
@@ -249,7 +250,11 @@ function render() {
   $("info").textContent =
     `Firmware ${info.fw} · ${Math.round(info.heap / 1024)} KB frei · läuft seit ${formatUptime(info.uptime)} · ` +
     `${info.clients} ${info.clients === 1 ? "Handy" : "Handys"} verbunden` +
-    (info.staIp ? ` · Heim-WLAN ${info.staIp}` : "");
+    (info.staIp ? ` · Hotspot ${info.staIp}` : "");
+  $("wifiStatus").textContent = wifiStatus(info, snap.config);
+  const install = $<HTMLButtonElement>("installUpdate");
+  install.hidden = !info.update;
+  install.textContent = `Version ${info.update} installieren`;
 }
 
 function formatUptime(sec: number) {
@@ -329,6 +334,12 @@ $("saveSettings").addEventListener("click", () => {
 });
 
 // ---------- update ----------
+
+$("checkUpdate").addEventListener("click", () => {
+  send({ t: "checkUpdate" });
+  toast("Frage GitHub …");
+});
+$("installUpdate").addEventListener("click", () => send({ t: "installUpdate" }));
 
 $<HTMLInputElement>("updateFile").addEventListener("change", async (ev) => {
   const input = ev.target as HTMLInputElement;

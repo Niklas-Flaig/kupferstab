@@ -1,10 +1,12 @@
 // Kupferstab: a Wemos D1 mini drives the NeoPixel strip inside the copper staff.
-// The phone app talks to it over the staff's own Wi-Fi; see docs/protocol.md.
+// It joins the phone's hotspot, or opens its own Wi-Fi when that is not there; the phone app
+// talks to it over either (see docs/protocol.md). New versions come from GitHub releases.
 
 #include <Arduino.h>
 
 #include "config.h"
 #include "effects.h"
+#include "selfupdate.h"
 #include "web.h"
 
 void setup() {
@@ -12,11 +14,13 @@ void setup() {
   storeLoad();
   effects::begin();
   web::begin();
-  Serial.printf("\nKupferstab %s: Wi-Fi \"%s\", http://192.168.4.1\n", FW_VERSION, store.config.apSsid.c_str());
+  Serial.printf("\nKupferstab %s: hotspot \"%s\", own Wi-Fi \"%s\"\n", FW_VERSION, store.config.staSsid.c_str(),
+                store.config.apSsid.c_str());
 }
 
 void loop() {
   web::loop();
   effects::loop();
+  selfupdate::loop();
   storeLoop();
 }

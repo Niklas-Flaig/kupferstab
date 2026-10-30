@@ -7,6 +7,9 @@ import {
   parseServerMessage,
   sanitizeState,
   updateTarget,
+  wifiStatus,
+  type Config,
+  type Info,
 } from "../src/protocol";
 
 describe("colour conversion", () => {
@@ -51,7 +54,18 @@ describe("messages", () => {
       state: { on: true, bri: 10, effect: "solid", speed: 5, color: "#FF0000", color2: "#000000" },
       scenes: [null, null, null, null],
       config: { leds: 60, pin: 2, order: "GRB", maxBri: 102, apSsid: "Kupferstab", staSsid: "" },
-      info: { fw: "0.1.0", heap: 20000, uptime: 3, apIp: "192.168.4.1", staIp: "", clients: 1, app: true },
+      info: {
+        fw: "0.1.0",
+        heap: 20000,
+        uptime: 3,
+        mode: "ap",
+        apIp: "192.168.4.1",
+        staIp: "",
+        lastStaIp: "",
+        update: "",
+        clients: 1,
+        app: true,
+      },
     };
     expect(parseServerMessage(JSON.stringify(snap))?.t).toBe("state");
     expect(parseServerMessage('{"t":"notice","message":"hi"}')).toEqual({ t: "notice", message: "hi" });
@@ -70,5 +84,35 @@ describe("helpers", () => {
     expect(updateTarget("firmware.bin.gz", 0x1f)).toBe("firmware");
     expect(updateTarget("littlefs.bin", 0x00)).toBe("fs");
     expect(updateTarget("foto.jpg", 0xff)).toBeNull();
+  });
+});
+
+describe("wifi status", () => {
+  const config: Config = { leds: 60, pin: 2, order: "GRB", maxBri: 102, apSsid: "Kupferstab", staSsid: "Pixel" };
+  const info = (patch: Partial<Info>): Info => ({
+    fw: "0.2.0",
+    heap: 20000,
+    uptime: 3,
+    mode: "ap",
+    apIp: "192.168.4.1",
+    staIp: "",
+    lastStaIp: "",
+    update: "",
+    clients: 1,
+    app: true,
+    ...patch,
+  });
+  test("in the hotspot it names both addresses", () => {
+    expect(wifiStatus(info({ mode: "sta", apIp: "", staIp: "10.0.0.7" }), config)).toBe(
+      "Im Hotspot „Pixel“, erreichbar unter http://kupferstab.local oder http://10.0.0.7.",
+    );
+  });
+  test("on the own Wi-Fi it says what it looks for and where it was", () => {
+    expect(wifiStatus(info({ lastStaIp: "10.0.0.7" }), config)).toBe(
+      "Sucht alle 30 s nach dem Hotspot „Pixel“. Zuletzt war er dort unter http://kupferstab.local oder http://10.0.0.7.",
+    );
+    expect(wifiStatus(info({}), { ...config, staSsid: "" })).toBe(
+      "Kein Hotspot eingetragen: Der Stab bleibt in seinem eigenen WLAN.",
+    );
   });
 });

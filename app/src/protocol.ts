@@ -38,12 +38,18 @@ export interface ConfigPatch extends Partial<Config> {
   otaPass?: string;
 }
 
+/** Where the staff is on the air; see firmware/src/wifi.h. */
+export type WifiMode = "connecting" | "sta" | "ap" | "joining";
+
 export interface Info {
   fw: string;
   heap: number;
   uptime: number;
-  apIp: string;
-  staIp: string;
+  mode: WifiMode;
+  apIp: string; // empty while the own Wi-Fi is closed
+  staIp: string; // the address in the hotspot, empty when not there
+  lastStaIp: string; // the address the hotspot gave it last time
+  update: string; // a newer version on GitHub, empty when none
   clients: number;
   app: boolean;
 }
@@ -67,7 +73,9 @@ export type ClientMessage =
   | { t: "scene"; slot: number; op: "save" | "apply" | "clear" }
   | { t: "config"; config: ConfigPatch }
   | { t: "test" }
-  | { t: "reboot" };
+  | { t: "reboot" }
+  | { t: "checkUpdate" }
+  | { t: "installUpdate" };
 
 // GPIOs on a D1 mini that can drive a strip, labelled as printed on the board.
 export const PINS = [
@@ -156,6 +164,16 @@ export function hexToHsv(hex: string): { h: number; s: number; v: number } {
 /** Brightness as the staff will show it, in percent of full. */
 export const effectivePercent = (bri: number, maxBri: number) =>
   Math.round((Math.min(bri, maxBri) / 255) * 100);
+
+/** One line on where the staff is and how to reach it, for the Wi-Fi section of the settings. */
+export function wifiStatus(info: Info, config: Config): string {
+  const at = (ip: string) => `http://kupferstab.local oder http://${ip}`;
+  if (info.mode === "sta") return `Im Hotspot „${config.staSsid}“, erreichbar unter ${at(info.staIp)}.`;
+  if (!config.staSsid) return "Kein Hotspot eingetragen: Der Stab bleibt in seinem eigenen WLAN.";
+  const last = info.lastStaIp ? ` Zuletzt war er dort unter ${at(info.lastStaIp)}.` : "";
+  if (info.mode === "joining") return `Hotspot „${config.staSsid}“ gefunden, melde mich an …${last}`;
+  return `Sucht alle 30 s nach dem Hotspot „${config.staSsid}“.${last}`;
+}
 
 /** The upload target for a file the user picked: the filesystem image or the firmware. */
 export function updateTarget(fileName: string, firstByte: number | undefined): "fs" | "firmware" | null {

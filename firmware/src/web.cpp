@@ -1,15 +1,15 @@
 #include "web.h"
 
 #include <ArduinoOTA.h>
-#include <DNSServer.h>
 #include <ESP8266WiFi.h>
-#include <ESP8266mDNS.h>
 #include <ESPAsyncWebServer.h>
 #include <LittleFS.h>
 #include <flash_hal.h>
 
 #include "config.h"
 #include "effects.h"
+#include "selfupdate.h"
+#include "wifi.h"
 
 namespace web {
 
@@ -20,7 +20,6 @@ constexpr const char* kHostname = "kupferstab";
 
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
-DNSServer dns;
 
 bool fsMounted = false;
 bool broadcastDue = false;
@@ -58,8 +57,11 @@ void fillFull(JsonDocument& doc) {
   info["fw"] = FW_VERSION;
   info["heap"] = ESP.getFreeHeap();
   info["uptime"] = millis() / 1000;
-  info["apIp"] = WiFi.softAPIP().toString();
-  info["staIp"] = WiFi.status() == WL_CONNECTED ? WiFi.localIP().toString() : String();
+  info["mode"] = wifi::modeName();
+  info["apIp"] = wifi::mode() == wifi::Mode::Station ? String() : WiFi.softAPIP().toString();
+  info["staIp"] = wifi::stationIp();
+  info["lastStaIp"] = store.lastStaIp;
+  info["update"] = selfupdate::available();
   info["clients"] = ws.count();
   info["app"] = fsMounted && (LittleFS.exists("/index.html") || LittleFS.exists("/index.html.gz"));
 }
@@ -110,8 +112,14 @@ void handleMessage(AsyncWebSocketClient* client, const char* text, size_t len) {
     broadcastDue = true;
   } else if (strcmp(t, "config") == 0) {
     bool ledsChanged = false;
-    bool restart = configFromJson(store.config, doc["config"], ledsChanged);
+    bool staChanged = false;
+    bool restart = configFromJson(store.config, doc["config"], ledsChanged, staChanged);
     storeTouch();
+    if (staChanged && !restart) {
+      wifi::credentialsChanged();
+      if (wifi::mode() == wifi::Mode::AccessPoint && store.config.staSsid.length())
+        reply(client, "notice", "Gespeichert. Trenn dich jetzt vom Stab und schalte den Hotspot ein.");
+    }
     if (ledsChanged) {
       effects::reconfigure();
       effects::runTest();
@@ -125,6 +133,10 @@ void handleMessage(AsyncWebSocketClient* client, const char* text, size_t len) {
     effects::runTest();
   } else if (strcmp(t, "reboot") == 0) {
     restartAt = millis() + 2500;
+  } else if (strcmp(t, "checkUpdate") == 0) {
+    selfupdate::requestCheck();
+  } else if (strcmp(t, "installUpdate") == 0) {
+    selfupdate::requestInstall();
   } else {
     reply(client, "error", "Unbekannter Befehl");
   }
@@ -197,21 +209,6 @@ bool isOurHost(AsyncWebServerRequest* request) {
   return host == kApIp.toString() || host == WiFi.localIP().toString() || host.startsWith(kHostname);
 }
 
-void setupWifi() {
-  const Config& c = store.config;
-  WiFi.persistent(false);
-  WiFi.setSleepMode(WIFI_NONE_SLEEP);
-  WiFi.hostname(kHostname);
-  WiFi.mode(c.staSsid.length() ? WIFI_AP_STA : WIFI_AP);
-  WiFi.softAPConfig(kApIp, kApIp, IPAddress(255, 255, 255, 0));
-  WiFi.softAP(c.apSsid.c_str(), c.apPass.length() >= 8 ? c.apPass.c_str() : nullptr);
-  if (c.staSsid.length()) WiFi.begin(c.staSsid.c_str(), c.staPass.c_str());
-  dns.setErrorReplyCode(DNSReplyCode::NoError);
-  dns.start(53, "*", kApIp);
-  MDNS.begin(kHostname);
-  MDNS.addService("http", "tcp", 80);
-}
-
 void setupOta() {
   ArduinoOTA.setHostname(kHostname);
   ArduinoOTA.setPassword(store.config.otaPass.c_str());
@@ -256,7 +253,8 @@ void setupServer() {
   server.serveStatic("/", LittleFS, "/").setCacheControl("max-age=86400");
 
   server.onNotFound([](AsyncWebServerRequest* request) {
-    if (!isOurHost(request)) return request->redirect("http://192.168.4.1/");
+    // Only on the own Wi-Fi does every name lead here (captive portal).
+    if (wifi::mode() != wifi::Mode::Station && !isOurHost(request)) return request->redirect("http://192.168.4.1/");
     request->send(404, "text/plain", "Nicht gefunden");
   });
 
@@ -267,14 +265,23 @@ void setupServer() {
 
 void begin() {
   fsMounted = LittleFS.begin();
-  setupWifi();
+  wifi::begin();
   setupOta();
   setupServer();
 }
 
+void notifyAll(const char* message) {
+  JsonDocument doc;
+  doc["t"] = "notice";
+  doc["message"] = message;
+  String out;
+  serializeJson(doc, out);
+  ws.textAll(out);
+  broadcastDue = true;  // the snapshot carries info.update
+}
+
 void loop() {
-  dns.processNextRequest();
-  MDNS.update();
+  wifi::loop();
   ArduinoOTA.handle();
 
   if (broadcastDue && ws.availableForWriteAll()) {

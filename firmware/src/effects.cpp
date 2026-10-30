@@ -11,12 +11,15 @@ namespace {
 constexpr uint32_t kFrameMs = 16;  // ~60 frames per second
 constexpr uint32_t kTestMs = 1800;
 constexpr uint32_t kTestColor = 0xFF6A1F;
+constexpr uint32_t kNumberMs = 8000;
 
 Adafruit_NeoPixel strip;
 std::vector<uint8_t> level;  // per-pixel scratch: sparkle brightness, fire heat
 uint32_t lastFrame = 0;
 uint32_t testUntil = 0;
 uint32_t testStart = 0;
+uint32_t numberUntil = 0;
+uint8_t number = 0;
 uint32_t phase = 0;  // advances with speed, in 1/65536 of a cycle
 
 uint8_t r8(uint32_t c) { return (c >> 16) & 0xFF; }
@@ -124,6 +127,12 @@ void runTest() {
   testUntil = testStart + kTestMs;
 }
 
+void showNumber(uint8_t n) {
+  number = n;
+  numberUntil = millis() + kNumberMs;
+  testUntil = 0;
+}
+
 void begin() {
   reconfigure();
   runTest();
@@ -133,6 +142,7 @@ void blackout() {
   strip.clear();
   strip.show();
   testUntil = 0;
+  numberUntil = 0;
 }
 
 void loop() {
@@ -150,6 +160,23 @@ void loop() {
     return;
   }
   testUntil = 0;
+
+  if (numberUntil && (int32_t)(numberUntil - now) > 0) {
+    char digits[4];
+    snprintf(digits, sizeof(digits), "%u", number);
+    strip.setBrightness(min<uint8_t>(80, store.config.maxBri));
+    strip.clear();
+    uint16_t at = 0;
+    for (const char* d = digits; *d; d++) {
+      uint8_t count = *d - '0';
+      if (count == 0) strip.setPixelColor(at++, 0x0030FF);
+      for (uint8_t i = 0; i < count; i++) strip.setPixelColor(at++, 0x00FF40);
+      at += 2;  // gap between digits
+    }
+    strip.show();
+    return;
+  }
+  numberUntil = 0;
 
   if (!s.on || s.bri == 0) {
     strip.clear();
