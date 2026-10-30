@@ -29,8 +29,7 @@ Danach braucht es kein Kabel mehr.
 
 1. **Werkzeuge** im Terminal installieren (einmalig, mit [Homebrew](https://brew.sh)):
    `brew install platformio oven-sh/bun/bun gh`
-2. **Repo holen:** `gh repo clone Niklas-Flaig/kupferstab && cd kupferstab`. Solange PR #3 offen
-   ist, zusätzlich `git checkout firmware-pwa`.
+2. **Repo holen:** `gh repo clone Niklas-Flaig/kupferstab && cd kupferstab`.
 3. **App bauen:** `bun install && bun run build`. Das Ende der Ausgabe lautet „App gebaut: index.html 7.2 KB gzip …“.
 4. **D1 mini per Micro-USB anschließen.** Das Kabel muss Daten übertragen können, reine
    Ladekabel gehen nicht. `ls /dev/cu.*` zeigt dann einen Eintrag wie
