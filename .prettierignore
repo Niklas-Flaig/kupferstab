@@ -1,0 +1,10 @@
+node_modules
+dist
+build
+.next
+coverage
+*.min.js
+*.lock
+bun.lock
+firmware/.pio
+firmware/data

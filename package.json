@@ -1,0 +1,18 @@
+{
+  "name": "kupferstab",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bun run scripts/build-app.ts",
+    "mock": "bun run app/mock/server.ts",
+    "test": "bun test",
+    "typecheck": "tsc",
+    "fw": "cd firmware && pio run -e d1_mini",
+    "fs": "bun run build && cd firmware && pio run -e d1_mini -t buildfs"
+  },
+  "devDependencies": {
+    "@types/bun": "1.1.14",
+    "prettier": "3.3.3",
+    "typescript": "5.6.3"
+  }
+}

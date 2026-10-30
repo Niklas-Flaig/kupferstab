@@ -3,3 +3,5 @@ node_modules/
 .memsearch/
 .DS_Store
 .worktrees/
+firmware/data/
+app/dist/

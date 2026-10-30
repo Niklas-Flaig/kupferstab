@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <meta name="theme-color" content="#16110e" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Kupferstab" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icon-180.png" />
+    <title>Kupferstab</title>
+    <style>
+      /*__CSS__*/
+    </style>
+  </head>
+  <body>
+    <header class="bar">
+      <div class="brand">
+        <span class="glyph" aria-hidden="true"></span>
+        <h1>Kupferstab</h1>
+      </div>
+      <span class="conn" id="conn" data-state="connecting">Verbinde …</span>
+      <button class="power" id="power" aria-pressed="true" aria-label="Licht an oder aus">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v9M6.3 6.8a8 8 0 1 0 11.4 0" /></svg>
+      </button>
+    </header>
+
+    <main>
+      <section class="panel color">
+        <canvas id="wheel" width="560" height="560" aria-label="Farbrad"></canvas>
+        <div class="swatches" id="swatches"></div>
+        <label class="slider">
+          <span>Helligkeit <output id="briOut"></output></span>
+          <input type="range" id="bri" min="1" max="255" />
+        </label>
+      </section>
+
+      <section class="panel">
+        <h2>Effekt</h2>
+        <div class="effects" id="effects"></div>
+        <label class="slider">
+          <span>Tempo <output id="speedOut"></output></span>
+          <input type="range" id="speed" min="1" max="100" />
+        </label>
+        <label class="second">
+          <span>Zweite Farbe <small>für Lauflicht und Funkeln</small></span>
+          <input type="color" id="color2" />
+        </label>
+      </section>
+
+      <section class="panel">
+        <div class="row">
+          <h2>Szenen</h2>
+          <button class="chip" id="saveMode" aria-pressed="false">Speichern</button>
+        </div>
+        <div class="scenes" id="scenes"></div>
+        <p class="hint" id="sceneHint">Tippen ruft eine Szene ab. „Speichern“ legt den aktuellen Stand auf einen Platz.</p>
+      </section>
+
+      <button class="settings-open" id="openSettings">Einstellungen und Update</button>
+    </main>
+
+    <dialog id="settings">
+      <form method="dialog" class="sheet" id="settingsForm">
+        <div class="row">
+          <h2>Einstellungen</h2>
+          <button class="chip" value="close" formnovalidate>Schließen</button>
+        </div>
+
+        <fieldset>
+          <legend>LED-Strip</legend>
+          <label>Anzahl LEDs <input type="number" id="leds" min="1" max="600" required /></label>
+          <label>
+            Daten-Pin
+            <select id="pin"></select>
+          </label>
+          <div class="pinfind">
+            <button type="button" class="chip" id="nextPin">Nächsten Pin testen</button>
+            <button type="button" class="chip" id="test">Test-Lauflicht</button>
+          </div>
+          <p class="hint">
+            Leuchtet nichts? „Nächsten Pin testen“ schaltet sofort um und spielt das Lauflicht. Sobald
+            der Stab leuchtet, auf „Speichern“ tippen.
+          </p>
+          <label>
+            Farbreihenfolge
+            <select id="order">
+              <option value="GRB">GRB (WS2812B, üblich)</option>
+              <option value="RGB">RGB</option>
+            </select>
+          </label>
+          <label class="slider">
+            <span>Helligkeitsgrenze <output id="maxBriOut"></output></span>
+            <input type="range" id="maxBri" min="10" max="255" />
+          </label>
+          <p class="hint">Schützt Netzteil und Powerbank: 60 LEDs auf Weiß ziehen bei voller Helligkeit bis zu 3,6 A.</p>
+        </fieldset>
+
+        <fieldset>
+          <legend>WLAN des Stabs</legend>
+          <label>Name <input id="apSsid" maxlength="32" required /></label>
+          <label>Neues Passwort <input id="apPass" type="password" minlength="8" maxlength="63" placeholder="unverändert lassen" autocomplete="new-password" /></label>
+          <label>Heim-WLAN (optional) <input id="staSsid" maxlength="32" placeholder="leer = nur eigenes WLAN" /></label>
+          <label>Heim-WLAN-Passwort <input id="staPass" type="password" maxlength="63" placeholder="unverändert lassen" autocomplete="new-password" /></label>
+          <p class="hint">Änderungen am WLAN starten den Stab neu. Danach wieder mit dem neuen Namen verbinden.</p>
+        </fieldset>
+
+        <button type="button" class="primary" id="saveSettings">Speichern</button>
+
+        <fieldset>
+          <legend>Update</legend>
+          <p class="hint">
+            <b>firmware.bin</b> für die Firmware, <b>littlefs.bin</b> für diese App. Der Stab startet danach
+            neu. Notfall-Seite ohne App: <a href="/update">/update</a>
+          </p>
+          <input type="file" id="updateFile" accept=".bin,.gz" />
+          <progress id="updateProgress" max="100" value="0" hidden></progress>
+          <p class="status" id="updateStatus" role="status"></p>
+        </fieldset>
+
+        <p class="info" id="info"></p>
+      </form>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" hidden></div>
+    <script type="module">
+      /*__JS__*/
+    </script>
+  </body>
+</html>
