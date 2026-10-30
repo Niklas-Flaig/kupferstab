@@ -68,6 +68,13 @@ Rückfrage entschieden habe:
   automatische Öffnen der App auf echtem iPhone/Android und ob ein Over-the-Air-Update wirklich
   durchläuft. Ohne Gerät kann ich das nicht prüfen.
 
+## Runde 2 (nach Iterieren)
+
+Du wolltest als Schritt 1 ein Tutorial, wie du den ESP vom MacBook aus flashst. Es steht jetzt im
+README unter [Vom MacBook aus, Schritt für Schritt](../../README.md#vom-macbook-aus-schritt-für-schritt)
+und als Tutorial-Karte im Walkthrough auf dem Board. An Code und Prüfpunkten hat sich nichts
+geändert.
+
 ## Selbst prüfen in drei Schritten
 
 1. **Im Repo** `bun install && bun run build && bun run mock`, dann `http://localhost:8080` öffnen.

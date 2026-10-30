@@ -25,6 +25,23 @@ Browser Bluetooth-Geräte ansprechen. Deshalb läuft alles über das WLAN des St
 Das alte OTA ist nicht mehr erreichbar, deshalb geht der erste Schritt per Micro-USB am D1 mini.
 Danach braucht es kein Kabel mehr.
 
+### Vom MacBook aus, Schritt für Schritt
+
+1. **Werkzeuge** im Terminal installieren (einmalig, mit [Homebrew](https://brew.sh)):
+   `brew install platformio oven-sh/bun/bun gh`
+2. **Repo holen:** `gh repo clone Niklas-Flaig/kupferstab && cd kupferstab`. Solange PR #3 offen
+   ist, zusätzlich `git checkout firmware-pwa`.
+3. **App bauen:** `bun install && bun run build`. Das Ende der Ausgabe lautet „App gebaut: index.html 7.2 KB gzip …“.
+4. **D1 mini per Micro-USB anschließen.** Das Kabel muss Daten übertragen können, reine
+   Ladekabel gehen nicht. `ls /dev/cu.*` zeigt dann einen Eintrag wie
+   `/dev/cu.usbserial-1410` oder `/dev/cu.wchusbserial1410`. Fehlt er, liegt es am Kabel oder am
+   [CH340-Treiber](https://www.wch-ic.com/downloads/CH34XSER_MAC_ZIP.html).
+5. **Firmware schreiben:** `cd firmware && pio run -e d1_mini -t upload`. Die Ausgabe endet mit
+   `[SUCCESS]`. Findet PlatformIO den Port nicht, hänge `--upload-port /dev/cu.usbserial-1410` an.
+6. **App schreiben:** `pio run -e d1_mini -t uploadfs`, ebenfalls bis `[SUCCESS]`.
+7. **Prüfen:** Nach dem Neustart läuft das Kupfer-Lauflicht. `pio device monitor` zeigt
+   `Kupferstab 0.1.0: Wi-Fi "Kupferstab"`; beenden mit Ctrl+C.
+
 ### Weg A: mit PlatformIO (empfohlen)
 
 ```sh
