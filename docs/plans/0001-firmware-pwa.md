@@ -2,9 +2,9 @@
 task: "Board #258 · Firmware + Handy-PWA für den Kupferstab"
 spec:
 tier: large
-approval: open
-approved_at:
-approved_hash:
+approval: granted
+approved_at: 2026-10-30
+approved_hash: d67531177a92b3c648843123ab39e968bfc20b1c # git blob of the approved version (b07195f)
 ---
 
 # 0001 · Firmware und Handy-App für den Kupferstab
@@ -154,6 +154,15 @@ zu flashen. Wenn es danach immer noch flackert, liegt es meist am fehlenden Pege
 | App liegt im Flash des ESP | Handy und Stab brauchen kein Internet, alles bleibt in einer Hand | App auf GitHub Pages: HTTPS-Seite darf nicht mit `http://192.168.4.1` reden (Mixed Content) |
 | Adafruit NeoPixel statt NeoPixelBus | Pin und Anzahl zur Laufzeit änderbar | NeoPixelBus mit DMA: Pin steht fest im Code (RX/GPIO3) |
 | ESPAsyncWebServer + WebSocket | mehrere Handys gleichzeitig, Push des Zustands | Polling über HTTP |
+| **Freigabe 2026-10-30:** Q1 a, Q2 a, Q3 a; C1 ✗ („glaube ja, weiß es nicht, Port nicht sichtbar“) | | |
+| Pin-Suche in der App („Nächsten Pin testen“ schaltet live um und spielt das Lauflicht) | Antwort auf C1: Pin unbekannt, Stab ist zu | Pin raten und neu flashen |
+| **Abweichung:** Einstellungen, Zustand und Szenen im EEPROM-Bereich statt auf LittleFS | Ein App-Update überschreibt das ganze Dateisystem und hätte LED-Anzahl, Pin und WLAN gelöscht | LittleFS wie im Plan |
+| Notfall-Seite `/update` fest in der Firmware | Updates bleiben möglich, auch wenn die App fehlt oder ein Dateisystem-Update schiefging (Stopp-Kriterium „unbrauchbar ohne USB“) | Update nur über die App |
+| Firmware-Upload prüft das erste Byte (0xE9, gzip 0x1F) | Ein versehentlich als Firmware hochgeladenes App-Image würde den ESP bis zum USB-Flash lahmlegen | keine Prüfung |
+| Plattform `espressif8266@4.2.1`, Bibliotheken exakt gepinnt | reproduzierbare Builds | Versionsbereiche |
+| Schriftliste ohne `system-ui` | Im Container zeigte `system-ui` auf eine Monospace-Schrift; Handys nehmen `-apple-system` bzw. Roboto | `system-ui` vorn |
+| _backlog_: GitHub-Action, die `firmware.bin` und `littlefs.bin` bei jedem Release baut | Updates ohne lokale Toolchain, nur mit Datei-Upload in der App | – |
+| _backlog_: OTA-Passwort in der App änderbar machen | Heute nur über das Protokoll (`otaPass`) | – |
 
 ## 5. Doku-Folgen
 
