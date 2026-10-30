@@ -100,24 +100,15 @@
         </fieldset>
 
         <fieldset>
-          <legend>Handy-Hotspot</legend>
-          <p class="status" id="wifiStatus" role="status"></p>
-          <label>Name des Hotspots <input id="staSsid" maxlength="32" placeholder="leer = nur eigenes WLAN" /></label>
-          <label>Passwort des Hotspots <input id="staPass" type="password" maxlength="63" placeholder="unverändert lassen" autocomplete="new-password" /></label>
-          <p class="hint">
-            Der Stab meldet sich in deinem Hotspot an und schließt dann sein eigenes WLAN. Nach dem
-            Speichern: vom Stab trennen, Hotspot einschalten, fertig. Der Stab kann nur 2,4 GHz, auf dem
-            iPhone also „Kompatibilität maximieren“ einschalten. Die App findest du dann unter
-            <b>http://kupferstab.local</b>. Geht das nicht, zeigt der Strip beim Verbinden die letzte Zahl
-            seiner Adresse: grüne LEDs je Ziffer, eine blaue für 0.
-          </p>
-        </fieldset>
-
-        <fieldset>
-          <legend>Eigenes WLAN (Rückfall)</legend>
+          <legend>WLAN des Stabs</legend>
           <label>Name <input id="apSsid" maxlength="32" required /></label>
           <label>Neues Passwort <input id="apPass" type="password" minlength="8" maxlength="63" placeholder="unverändert lassen" autocomplete="new-password" /></label>
-          <p class="hint">Öffnet der Stab, wenn er deinen Hotspot nicht findet. Änderungen hier starten ihn neu.</p>
+          <label>Heim-WLAN (optional) <input id="staSsid" maxlength="32" placeholder="leer = nur eigenes WLAN" /></label>
+          <label>Heim-WLAN-Passwort <input id="staPass" type="password" maxlength="63" placeholder="unverändert lassen" autocomplete="new-password" /></label>
+          <p class="hint">
+            Änderungen am WLAN starten den Stab neu. Danach wieder mit dem neuen Namen verbinden. Das
+            Heim-WLAN (2,4 GHz, auch ein Handy-Hotspot) braucht der Stab nur für Updates von GitHub.
+          </p>
         </fieldset>
 
         <button type="button" class="primary" id="saveSettings">Speichern</button>
@@ -129,7 +120,7 @@
           </div>
           <button type="button" class="primary" id="installUpdate" hidden></button>
           <p class="hint">
-            Neue Versionen kommen von GitHub, sobald der Stab in deinem Hotspot ist und der Hotspot Internet hat.
+            Neue Versionen kommen von GitHub, solange der Stab im Heim-WLAN ist und es Internet hat.
           </p>
           <p class="hint">
             Ohne Internet: <b>firmware.bin</b> für die Firmware, <b>littlefs.bin</b> für diese App hier

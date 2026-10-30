@@ -28,7 +28,6 @@ void storeToJson(JsonDocument& doc) {
     if (store.sceneUsed[i]) stateToJson(store.scenes[i], scenes.add<JsonObject>());
     else scenes.add(nullptr);
   }
-  doc["lastStaIp"] = store.lastStaIp;
 }
 
 void storeSave() {
@@ -61,14 +60,13 @@ void storeLoad() {
   if (deserializeJson(doc, text)) return;
 
   bool ignored;
-  configFromJson(store.config, doc["config"], ignored, ignored);
+  configFromJson(store.config, doc["config"], ignored);
   stateFromJson(store.state, doc["state"]);
   JsonArrayConst scenes = doc["scenes"];
   for (uint8_t i = 0; i < kSceneCount && i < scenes.size(); i++) {
     store.sceneUsed[i] = scenes[i].is<JsonObjectConst>();
     if (store.sceneUsed[i]) stateFromJson(store.scenes[i], scenes[i]);
   }
-  store.lastStaIp = doc["lastStaIp"] | "";
 }
 
 void storeTouch() {
@@ -137,7 +135,7 @@ void configToJson(const Config& c, JsonObject o) {
   o["staSsid"] = c.staSsid;
 }
 
-bool configFromJson(Config& c, JsonObjectConst o, bool& ledsChanged, bool& staChanged) {
+bool configFromJson(Config& c, JsonObjectConst o, bool& ledsChanged) {
   ledsChanged = false;
   bool restart = false;
   if (o.isNull()) return false;
@@ -160,18 +158,18 @@ bool configFromJson(Config& c, JsonObjectConst o, bool& ledsChanged, bool& staCh
     c.rgbOrder = v;
   }
   if (o["maxBri"].is<int>()) c.maxBri = constrain(o["maxBri"].as<int>(), 10, 255);
-  auto str = [&](const char* key, String& field, size_t minLen, bool& changed) {
+  auto str = [&](const char* key, String& field, size_t minLen, bool needsRestart) {
     if (!o[key].is<const char*>()) return;
     String v = o[key].as<const char*>();
     if (v.length() > 63 || (v.length() > 0 && v.length() < minLen)) return;
-    if (v != field) changed = true;
+    if (v != field && needsRestart) restart = true;
     field = v;
   };
-  str("apSsid", c.apSsid, 1, restart);
-  str("apPass", c.apPass, 8, restart);  // WPA2 needs 8 characters; empty means open
-  str("staSsid", c.staSsid, 1, staChanged);
-  str("staPass", c.staPass, 1, staChanged);
-  str("otaPass", c.otaPass, 4, restart);
+  str("apSsid", c.apSsid, 1, true);
+  str("apPass", c.apPass, 8, true);  // WPA2 needs 8 characters; empty means open
+  str("staSsid", c.staSsid, 1, true);
+  str("staPass", c.staPass, 1, true);
+  str("otaPass", c.otaPass, 4, true);
   if (c.apSsid.length() == 0) c.apSsid = "Kupferstab";
   return restart;
 }

@@ -3,8 +3,9 @@
 #include <Arduino.h>
 
 // Updates from the GitHub releases of Niklas-Flaig/kupferstab, see docs/protocol.md.
-// The staff checks after joining the hotspot, every 30 minutes and on request; it installs
-// only on request. Everything it takes is signed with the release key (signing_key.h).
+// The staff checks after joining the home Wi-Fi (the optional second network next to its own),
+// every 30 minutes and on request; it installs only on request. Everything it takes is signed
+// with the release key (signing_key.h).
 namespace selfupdate {
 
 void loop();

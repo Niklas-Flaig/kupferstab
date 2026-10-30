@@ -7,7 +7,6 @@ import {
   hsvToHex,
   parseServerMessage,
   updateTarget,
-  wifiStatus,
   type ClientMessage,
   type ConfigPatch,
   type LightState,
@@ -137,6 +136,8 @@ function pickFromWheel(ev: PointerEvent) {
   render();
 }
 
+// touch-action: none alone does not stop every browser from scrolling or reloading under the finger.
+wheel.addEventListener("touchmove", (ev) => ev.preventDefault(), { passive: false });
 wheel.addEventListener("pointerdown", (ev) => {
   wheel.setPointerCapture(ev.pointerId);
   pickFromWheel(ev);
@@ -250,8 +251,7 @@ function render() {
   $("info").textContent =
     `Firmware ${info.fw} · ${Math.round(info.heap / 1024)} KB frei · läuft seit ${formatUptime(info.uptime)} · ` +
     `${info.clients} ${info.clients === 1 ? "Handy" : "Handys"} verbunden` +
-    (info.staIp ? ` · Hotspot ${info.staIp}` : "");
-  $("wifiStatus").textContent = wifiStatus(info, snap.config);
+    (info.staIp ? ` · Heim-WLAN ${info.staIp}` : "");
   const install = $<HTMLButtonElement>("installUpdate");
   install.hidden = !info.update;
   install.textContent = `Version ${info.update} installieren`;

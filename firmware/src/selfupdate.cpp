@@ -11,7 +11,6 @@
 #include "effects.h"
 #include "signing_key.h"
 #include "web.h"
-#include "wifi.h"
 
 namespace selfupdate {
 
@@ -21,7 +20,7 @@ namespace {
 // so a release published in between cannot mix two versions.
 constexpr const char* kLatest = "https://github.com/Niklas-Flaig/kupferstab/releases/latest/download/";
 constexpr const char* kRelease = "https://github.com/Niklas-Flaig/kupferstab/releases/download/";
-constexpr uint32_t kFirstCheckMs = 5000;  // after joining the hotspot, let DHCP and DNS settle
+constexpr uint32_t kFirstCheckMs = 5000;  // after joining the home Wi-Fi, let DHCP and DNS settle
 constexpr uint32_t kCheckEveryMs = 30UL * 60 * 1000;
 constexpr size_t kMaxManifest = 4096;
 constexpr size_t kSignatureLen = 256;  // RSA-2048
@@ -120,7 +119,7 @@ void check() {
   Sink text(kMaxManifest);
   Sink signature(kSignatureLen);
   if (!fetch(String(kLatest) + "manifest.json", text)) {
-    if (manualCheck) say("GitHub nicht erreichbar. Hat der Hotspot Internet?");
+    if (manualCheck) say("GitHub nicht erreichbar. Hat das Heim-WLAN Internet?");
     return;
   }
   JsonDocument doc;
@@ -215,11 +214,12 @@ void install() {
 }  // namespace
 
 void loop() {
-  const bool online = wifi::online();
+  const bool online = WiFi.status() == WL_CONNECTED;
   if (online && !wasOnline) nextCheck = millis() + kFirstCheckMs;
   wasOnline = online;
   if (!online) {
-    if (checkWanted || installWanted) say("Für Updates muss der Stab in deinem Hotspot sein.");
+    if (checkWanted || installWanted)
+      say("Für Updates braucht der Stab ein WLAN mit Internet: Einstellungen → Heim-WLAN.");
     checkWanted = installWanted = false;
     return;
   }

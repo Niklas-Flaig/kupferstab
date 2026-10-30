@@ -16,19 +16,12 @@ Kommt beim Verbinden und nach jeder Änderung an alle verbundenen Handys.
   "state": { "on": true, "bri": 160, "effect": "rainbow", "speed": 50, "color": "#FF6A1F", "color2": "#1A0A00" },
   "scenes": [{ "on": true, "bri": 160, "effect": "fire", "speed": 60, "color": "#FF6A1F", "color2": "#1A0A00" }, null, null, null],
   "config": { "leds": 60, "pin": 2, "order": "GRB", "maxBri": 102, "apSsid": "Kupferstab", "staSsid": "" },
-  "info": { "fw": "0.2.0", "heap": 23456, "uptime": 42, "mode": "sta", "apIp": "", "staIp": "172.20.10.3", "lastStaIp": "172.20.10.3", "update": "", "clients": 1, "app": true }
+  "info": { "fw": "0.1.0", "heap": 23456, "uptime": 42, "apIp": "192.168.4.1", "staIp": "", "update": "", "clients": 1, "app": true }
 }
 ```
 
-Passwörter schickt der Stab nie zurück.
-
-| `info.…` | |
-| --- | --- |
-| `mode` | `connecting` (Start, versucht den Hotspot), `sta` (im Hotspot, eigenes WLAN zu), `ap` (eigenes WLAN, sucht alle 30 s den Hotspot), `joining` (Hotspot gefunden, meldet sich an) |
-| `apIp` | Adresse im eigenen WLAN, leer wenn es zu ist |
-| `staIp` | Adresse im Hotspot, leer wenn nicht dort |
-| `lastStaIp` | Adresse beim letzten Mal im Hotspot, bleibt gespeichert |
-| `update` | neuere Version auf GitHub, leer wenn keine (oder noch nicht geprüft) |
+Passwörter schickt der Stab nie zurück. `info.update` ist eine neuere Version auf GitHub, leer wenn
+keine da ist oder noch nicht geprüft wurde.
 
 ### `notice` / `error`
 
@@ -43,10 +36,10 @@ Passwörter schickt der Stab nie zurück.
 | `{"t":"get"}` | Stab antwortet mit `state` |
 | `{"t":"set","state":{…}}` | übernimmt die vorhandenen Felder von `state` |
 | `{"t":"scene","slot":0,"op":"save"}` | legt den aktuellen Stand auf Platz 0–3; `op` auch `apply` und `clear` |
-| `{"t":"config","config":{…}}` | Einstellungen; `pin`, `leds` und `order` wirken sofort (mit Test-Lauflicht), `staSsid`/`staPass` ebenfalls ohne Neustart; `apSsid`, `apPass` und `otaPass` starten den Stab neu |
+| `{"t":"config","config":{…}}` | Einstellungen; `pin`, `leds` und `order` wirken sofort (mit Test-Lauflicht), WLAN- und Passwort-Felder starten den Stab neu |
 | `{"t":"test"}` | spielt das Test-Lauflicht |
 | `{"t":"reboot"}` | Neustart |
-| `{"t":"checkUpdate"}` | fragt GitHub; das Ergebnis kommt als `notice` und in `info.update` |
+| `{"t":"checkUpdate"}` | fragt GitHub (nur im Heim-WLAN); das Ergebnis kommt als `notice` und in `info.update` |
 | `{"t":"installUpdate"}` | installiert `info.update` (App-Dateien, dann Firmware) und startet neu; Fehler kommen als `notice` |
 
 ### Felder
@@ -63,7 +56,7 @@ Passwörter schickt der Stab nie zurück.
 | `order` | `GRB` oder `RGB` |
 | `maxBri` | 10–255 |
 | `apSsid`, `apPass` | eigenes WLAN; Passwort leer (offen) oder 8–63 Zeichen |
-| `staSsid`, `staPass` | Handy-Hotspot; leer = nur eigenes WLAN |
+| `staSsid`, `staPass` | Heim-WLAN, optional; nötig für Updates von GitHub |
 | `otaPass` | Passwort für Updates vom Laptop (`pio run -e ota`), mindestens 4 Zeichen |
 
 Werte außerhalb der Grenzen werden begrenzt, unbekannte Felder ignoriert.
@@ -79,8 +72,8 @@ Werte außerhalb der Grenzen werden begrenzt, unbekannte Felder ignoriert.
 | `POST /update?target=fs` | dasselbe für das Dateisystem-Image (die App) |
 
 Auf `POST /update` antwortet der Stab mit `200 OK` oder `500` und dem Grund. Danach startet er neu.
-Im eigenen WLAN leitet er fremde Hosts und die Captive-Portal-Prüfungen der Handys
-(`/generate_204`, `/hotspot-detect.html`, …) auf `http://192.168.4.1/` um.
+Fremde Hosts und die Captive-Portal-Prüfungen der Handys (`/generate_204`,
+`/hotspot-detect.html`, …) leitet er auf `http://192.168.4.1/` um.
 
 ## Releases auf GitHub
 

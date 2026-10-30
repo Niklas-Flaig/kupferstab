@@ -175,9 +175,13 @@ gegen `firmware-pwa`.
 | **Abweichung:** Ein Probelauf der Action über einen vorübergehenden Push-Trigger auf diesem Branch | „Run workflow“ zeigt GitHub erst, wenn die Datei auf `main` liegt; so ist die Action schon vor dem Merge geprüft | erst nach dem Merge testen |
 | Die Prüfung blockiert den Loop etwa 2–5 s (TLS); das Licht steht dabei kurz | Alle 30 min ist das vertretbar, der ESP8266 hat keinen zweiten Kern | Prüfen nur auf Knopfdruck |
 | _backlog_: „Run workflow“ erscheint erst, wenn PR #3 und dieser PR auf `main` sind | | |
+| **Walkthrough 2026-10-31, nicht abgenommen:** „Schmeißt bitte den Part mit, dass er sich mit meinem Hotspot verbindet, raus … das funktioniert leider nicht. Also macht die Änderung wieder rückgängig.“ | | |
+| **Abweichung:** Welle 1 zurückgenommen. WLAN wieder wie in `firmware-pwa`: eigenes WLAN immer, Heim-WLAN optional daneben, Änderungen daran starten neu. `wifi.*`, `showNumber`, `lastStaIp`, `info.mode` sind raus | Anweisung aus dem Walkthrough | Hotspot-Modus behalten |
+| Selbst-Update bleibt, es läuft über das optionale Heim-WLAN (auch ein Handy-Hotspot geht dort) | Ohne irgendein WLAN mit Internet kommt der Stab nicht an GitHub; das alte Heim-WLAN-Feld deckt das ab, ohne das eigene WLAN zu schließen | Selbst-Update auch entfernen |
+| Kein Pull-to-Refresh mehr (`overscroll-behavior-y: none`), Farbrad blockt `touchmove` | Nachgereichter Wunsch: Ziehen nach unten am Farbrad oder an Reglern hat die Seite neu geladen | Regler mit `touch-action: none` (dann ließe sich die Seite über ihnen nicht mehr scrollen) |
 
 ## 5. Doku-Folgen
 
-- README: Party-Ablauf, Einstellungen, Updates, Fehlersuche (2,4 GHz / „Kompatibilität maximieren“).
-- `docs/protocol.md`: `info.mode`, `checkUpdate`, neue `notice`-Texte.
-- `CONTEXT.md`: Handy-Hotspot, Release.
+- README: Updates von GitHub, Heim-WLAN als Weg ins Internet, Fehlersuche. (Party-Ablauf nach der Rücknahme wieder wie vorher.)
+- `docs/protocol.md`: `info.update`, `checkUpdate`, `installUpdate`, Releases.
+- `CONTEXT.md`: Release, `selfupdate.*`.

@@ -1,7 +1,9 @@
 #include "web.h"
 
 #include <ArduinoOTA.h>
+#include <DNSServer.h>
 #include <ESP8266WiFi.h>
+#include <ESP8266mDNS.h>
 #include <ESPAsyncWebServer.h>
 #include <LittleFS.h>
 #include <flash_hal.h>
@@ -9,7 +11,6 @@
 #include "config.h"
 #include "effects.h"
 #include "selfupdate.h"
-#include "wifi.h"
 
 namespace web {
 
@@ -20,6 +21,7 @@ constexpr const char* kHostname = "kupferstab";
 
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
+DNSServer dns;
 
 bool fsMounted = false;
 bool broadcastDue = false;
@@ -57,10 +59,8 @@ void fillFull(JsonDocument& doc) {
   info["fw"] = FW_VERSION;
   info["heap"] = ESP.getFreeHeap();
   info["uptime"] = millis() / 1000;
-  info["mode"] = wifi::modeName();
-  info["apIp"] = wifi::mode() == wifi::Mode::Station ? String() : WiFi.softAPIP().toString();
-  info["staIp"] = wifi::stationIp();
-  info["lastStaIp"] = store.lastStaIp;
+  info["apIp"] = WiFi.softAPIP().toString();
+  info["staIp"] = WiFi.status() == WL_CONNECTED ? WiFi.localIP().toString() : String();
   info["update"] = selfupdate::available();
   info["clients"] = ws.count();
   info["app"] = fsMounted && (LittleFS.exists("/index.html") || LittleFS.exists("/index.html.gz"));
@@ -112,14 +112,8 @@ void handleMessage(AsyncWebSocketClient* client, const char* text, size_t len) {
     broadcastDue = true;
   } else if (strcmp(t, "config") == 0) {
     bool ledsChanged = false;
-    bool staChanged = false;
-    bool restart = configFromJson(store.config, doc["config"], ledsChanged, staChanged);
+    bool restart = configFromJson(store.config, doc["config"], ledsChanged);
     storeTouch();
-    if (staChanged && !restart) {
-      wifi::credentialsChanged();
-      if (wifi::mode() == wifi::Mode::AccessPoint && store.config.staSsid.length())
-        reply(client, "notice", "Gespeichert. Trenn dich jetzt vom Stab und schalte den Hotspot ein.");
-    }
     if (ledsChanged) {
       effects::reconfigure();
       effects::runTest();
@@ -209,6 +203,21 @@ bool isOurHost(AsyncWebServerRequest* request) {
   return host == kApIp.toString() || host == WiFi.localIP().toString() || host.startsWith(kHostname);
 }
 
+void setupWifi() {
+  const Config& c = store.config;
+  WiFi.persistent(false);
+  WiFi.setSleepMode(WIFI_NONE_SLEEP);
+  WiFi.hostname(kHostname);
+  WiFi.mode(c.staSsid.length() ? WIFI_AP_STA : WIFI_AP);
+  WiFi.softAPConfig(kApIp, kApIp, IPAddress(255, 255, 255, 0));
+  WiFi.softAP(c.apSsid.c_str(), c.apPass.length() >= 8 ? c.apPass.c_str() : nullptr);
+  if (c.staSsid.length()) WiFi.begin(c.staSsid.c_str(), c.staPass.c_str());
+  dns.setErrorReplyCode(DNSReplyCode::NoError);
+  dns.start(53, "*", kApIp);
+  MDNS.begin(kHostname);
+  MDNS.addService("http", "tcp", 80);
+}
+
 void setupOta() {
   ArduinoOTA.setHostname(kHostname);
   ArduinoOTA.setPassword(store.config.otaPass.c_str());
@@ -253,8 +262,7 @@ void setupServer() {
   server.serveStatic("/", LittleFS, "/").setCacheControl("max-age=86400");
 
   server.onNotFound([](AsyncWebServerRequest* request) {
-    // Only on the own Wi-Fi does every name lead here (captive portal).
-    if (wifi::mode() != wifi::Mode::Station && !isOurHost(request)) return request->redirect("http://192.168.4.1/");
+    if (!isOurHost(request)) return request->redirect("http://192.168.4.1/");
     request->send(404, "text/plain", "Nicht gefunden");
   });
 
@@ -265,7 +273,7 @@ void setupServer() {
 
 void begin() {
   fsMounted = LittleFS.begin();
-  wifi::begin();
+  setupWifi();
   setupOta();
   setupServer();
 }
@@ -281,7 +289,8 @@ void notifyAll(const char* message) {
 }
 
 void loop() {
-  wifi::loop();
+  dns.processNextRequest();
+  MDNS.update();
   ArduinoOTA.handle();
 
   if (broadcastDue && ws.availableForWriteAll()) {

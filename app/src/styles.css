@@ -37,6 +37,9 @@ body {
   font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
     "Liberation Sans", sans-serif;
   -webkit-tap-highlight-color: transparent;
+  /* No pull-to-refresh: dragging a slider or the wheel downwards at the top of the page would
+     reload the app. It reconnects on its own, so reloading is never needed. */
+  overscroll-behavior-y: none;
 }
 body {
   padding: env(safe-area-inset-top, 0) max(16px, env(safe-area-inset-right, 0))
