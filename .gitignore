@@ -5,3 +5,4 @@ node_modules/
 .worktrees/
 firmware/data/
 app/dist/
+release/

@@ -1,0 +1,64 @@
+# The button for a new version: Actions → Release → Run workflow. Builds app and firmware,
+# signs them with the secret SIGNING_KEY and publishes a release; the staff finds it on its own
+# (firmware/src/selfupdate.cpp) and installs it when you tap "installieren" in the app.
+name: Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency: release
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Version
+        # 0.1.0 is the first USB flash; every run counts up from there.
+        run: echo "VERSION=0.$((GITHUB_RUN_NUMBER + 1)).0" >> "$GITHUB_ENV"
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.11
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: pio-${{ hashFiles('firmware/platformio.ini') }}
+
+      - run: pip install platformio==6.2.0
+
+      - name: App
+        run: bun install --frozen-lockfile && bun run build
+
+      - name: Firmware
+        working-directory: firmware
+        env:
+          PLATFORMIO_BUILD_FLAGS: -DFW_VERSION=\"${{ env.VERSION }}\"
+        run: pio run -e d1_mini && pio run -e d1_mini -t buildfs
+
+      - name: Sign and pack
+        env:
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$SIGNING_KEY" > "$RUNNER_TEMP/signing.key"
+          SIGNING_KEY_FILE="$RUNNER_TEMP/signing.key" bun run scripts/release.ts "$VERSION"
+          rm "$RUNNER_TEMP/signing.key"
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v$VERSION" release/* \
+            --target "$GITHUB_SHA" \
+            --title "Kupferstab $VERSION" \
+            --notes "Firmware und App, signiert. Der Stab findet das Update selbst; installieren in der App unter Einstellungen → Update."

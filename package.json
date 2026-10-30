@@ -8,7 +8,8 @@
     "test": "bun test",
     "typecheck": "tsc",
     "fw": "cd firmware && pio run -e d1_mini",
-    "fs": "bun run build && cd firmware && pio run -e d1_mini -t buildfs"
+    "fs": "bun run build && cd firmware && pio run -e d1_mini -t buildfs",
+    "release": "bun run scripts/release.ts"
   },
   "devDependencies": {
     "@types/bun": "1.1.14",
