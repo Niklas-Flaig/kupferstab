@@ -178,6 +178,7 @@ gegen `firmware-pwa`.
 | **Walkthrough 2026-10-31, nicht abgenommen:** „Schmeißt bitte den Part mit, dass er sich mit meinem Hotspot verbindet, raus … das funktioniert leider nicht. Also macht die Änderung wieder rückgängig.“ | | |
 | **Abweichung:** Welle 1 zurückgenommen. WLAN wieder wie in `firmware-pwa`: eigenes WLAN immer, Heim-WLAN optional daneben, Änderungen daran starten neu. `wifi.*`, `showNumber`, `lastStaIp`, `info.mode` sind raus | Anweisung aus dem Walkthrough | Hotspot-Modus behalten |
 | Selbst-Update bleibt, es läuft über das optionale Heim-WLAN (auch ein Handy-Hotspot geht dort) | Ohne irgendein WLAN mit Internet kommt der Stab nicht an GitHub; das alte Heim-WLAN-Feld deckt das ab, ohne das eigene WLAN zu schließen | Selbst-Update auch entfernen |
+| Release v0.3.0 aus dem zurückgenommenen Stand (wieder per vorübergehendem Trigger), v0.2.0 bleibt stehen | v0.2.0 enthält die Hotspot-Firmware; als ältere Version bietet der Stab sie nicht mehr an. Löschen wäre nicht umkehrbar | v0.2.0 löschen |
 | Kein Pull-to-Refresh mehr (`overscroll-behavior-y: none`), Farbrad blockt `touchmove` | Nachgereichter Wunsch: Ziehen nach unten am Farbrad oder an Reglern hat die Seite neu geladen | Regler mit `touch-action: none` (dann ließe sich die Seite über ihnen nicht mehr scrollen) |
 
 ## 5. Doku-Folgen
