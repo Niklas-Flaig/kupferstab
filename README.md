@@ -12,6 +12,8 @@ kommen over the air.
 3. Für das Gefühl einer echten App: im Browser auf „Teilen → Zum Home-Bildschirm“ (iPhone) bzw.
    „⋮ → Zum Startbildschirm hinzufügen“ (Android) tippen. Danach startet sie im Vollbild.
 
+<img src="docs/screenshots/main-dark.png" alt="Die App: Farbrad, Helligkeit, Effekte, Szenen" width="260"> <img src="docs/screenshots/settings.png" alt="Einstellungen mit Pin-Suche und Update" width="260">
+
 Der Stab braucht weder Router noch Internet. Mehrere Handys können gleichzeitig steuern und sehen
 die Änderungen der anderen sofort.
 
