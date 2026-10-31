@@ -5,6 +5,7 @@ import {
   hexToHsv,
   hsvToHex,
   layout,
+  mergeState,
   parseServerMessage,
   sanitizeState,
   updateTarget,
@@ -27,15 +28,24 @@ describe("colour conversion", () => {
 
 describe("state patches", () => {
   test("clamps like the firmware", () => {
-    expect(sanitizeState({ bri: 300, speed: 0 })).toEqual({ bri: 255, speed: 1 });
-    expect(sanitizeState({ bri: -4, speed: 140 })).toEqual({ bri: 0, speed: 100 });
+    expect(sanitizeState({ bri: 300 })).toEqual({ bri: 255 });
+    expect(
+      sanitizeState({ fx: { strobo: { variant: 9, period: 1, spread: 140, p: { charge: 50, nope: 3 } } } }),
+    ).toEqual({ fx: { strobo: { variant: 1, period: 3, spread: 100, p: { charge: 20 } } } });
   });
   test("drops unknown effects and bad colours", () => {
-    expect(sanitizeState({ effect: "laser" as never, color: "red" })).toEqual({});
-    expect(sanitizeState({ effect: "fire", color: "#ff6a1f" })).toEqual({
-      effect: "fire",
-      color: "#FF6A1F",
+    expect(sanitizeState({ effect: "laser" as never, fx: { atem: { palette: ["red"] } } })).toEqual({});
+    expect(sanitizeState({ effect: "glut", fx: { glut: { palette: ["#ff6a1f", "x", "#14c9a8"] } } })).toEqual({
+      effect: "glut",
+      fx: { glut: { palette: ["#FF6A1F", "#14C9A8"] } },
     });
+  });
+  test("merges effect settings field by field", () => {
+    const fx = { variant: 0, palette: ["#FF6A1F"], period: 12, spread: 30, p: { tempo: 50 } };
+    const base = { on: true, bri: 100, effect: "glut" as const, fx: { atem: fx, strobo: fx, glut: fx, polarlicht: fx, funkenflug: fx, mosaik: fx } };
+    const next = mergeState(base, { fx: { glut: { p: { tempo: 80 } } } });
+    expect(next.fx.glut).toEqual({ ...fx, p: { tempo: 80 } });
+    expect(next.fx.atem).toBe(fx);
   });
 });
 
@@ -49,8 +59,9 @@ describe("messages", () => {
   test("parses a snapshot and rejects junk", () => {
     const snap = {
       t: "state",
-      state: { on: true, bri: 10, effect: "solid", speed: 5, color: "#FF0000", color2: "#000000" },
+      state: { on: true, bri: 10, effect: "atem", fx: {} },
       scenes: [null, null, null, null],
+      run: null,
       config: { leds: 164, fold: 50, tip: true, pin: 2, order: "GRB", maxBri: 102, apSsid: "Kupferstab", staSsid: "" },
       info: { fw: "0.1.0", heap: 20000, uptime: 3, apIp: "192.168.4.1", staIp: "", update: "", clients: 1, app: true },
     };

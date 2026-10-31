@@ -1,27 +1,37 @@
 import {
   EFFECTS,
+  PALETTE_MAX,
+  PALETTE_PRESETS,
   PINS,
+  effectDef,
   effectivePercent,
   encode,
+  formatParam,
   hexToHsv,
   hsvToHex,
+  mergeState,
   parseServerMessage,
   updateTarget,
   type ClientMessage,
   type ConfigPatch,
+  type EffectId,
+  type Fx,
+  type FxPatch,
   layoutText,
-  type LightState,
   type Snapshot,
+  type StatePatch,
 } from "./protocol";
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
-const SWATCHES = ["#FF6A1F", "#FF0000", "#FFB000", "#00FF40", "#00E5FF", "#0030FF", "#9000FF", "#FF00A0", "#FFFFFF"];
+const SWATCHES = ["#FF6A1F", "#FF2A10", "#FFB030", "#14C9A8", "#2A5BFF", "#4A5BFF", "#B04CFF", "#FF2A6D", "#FFFFFF"];
 
 let snap: Snapshot | null = null;
+let runAt = 0; // when the last snapshot with a running strobe arrived
 let socket: WebSocket | null = null;
 let retry = 1000;
 let saveMode = false;
+let selected = 0; // the palette colour the wheel edits
 
 // ---------- connection ----------
 
@@ -39,6 +49,7 @@ function connect() {
     if (msg.t === "state") {
       const first = !snap;
       snap = msg;
+      runAt = performance.now();
       render();
       if (first && dialog.open) fillSettings();
     } else {
@@ -65,15 +76,42 @@ function send(msg: ClientMessage) {
 }
 
 // Sliders and the wheel fire many events; send at most one change per frame.
-let pending: Partial<LightState> | null = null;
-function setState(patch: Partial<LightState>) {
-  if (snap) Object.assign(snap.state, patch);
-  pending = { ...pending, ...patch };
+let pending: StatePatch | null = null;
+function mergePatch(a: StatePatch | null, b: StatePatch): StatePatch {
+  const out: StatePatch = { ...a, ...b };
+  if (a?.fx || b.fx) {
+    out.fx = { ...a?.fx };
+    for (const [id, f] of Object.entries(b.fx ?? {}) as [EffectId, FxPatch][]) {
+      const prev = out.fx[id];
+      out.fx[id] = { ...prev, ...f, p: { ...prev?.p, ...f.p } };
+    }
+  }
+  return out;
+}
+function setState(patch: StatePatch) {
+  if (snap) snap.state = mergeState(snap.state, patch);
+  pending = mergePatch(pending, patch);
   requestAnimationFrame(() => {
     if (!pending) return;
     send({ t: "set", state: pending });
     pending = null;
   });
+}
+
+const current = (): { id: EffectId; fx: Fx } | null =>
+  snap ? { id: snap.state.effect, fx: snap.state.fx[snap.state.effect] } : null;
+
+function setFx(patch: FxPatch) {
+  const c = current();
+  if (c) setState({ on: true, fx: { [c.id]: patch } });
+}
+
+function setPaletteColor(color: string) {
+  const c = current();
+  if (!c) return;
+  const palette = [...c.fx.palette];
+  palette[Math.min(selected, palette.length - 1)] = color;
+  setFx({ palette });
 }
 
 // ---------- colour wheel ----------
@@ -130,10 +168,7 @@ function pickFromWheel(ev: PointerEvent) {
   const dy = ((ev.clientY - rect.top) / rect.height) * 2 - 1;
   const s = Math.min(1, Math.hypot(dx, dy) / 0.94);
   const h = ((Math.atan2(dy, dx) * 180) / Math.PI + 360) % 360;
-  const color = hsvToHex(h, s, 1);
-  // Picking a colour while a colourful effect runs would show nothing; switch to plain colour.
-  const effect = snap && ["rainbow", "colorloop", "fire"].includes(snap.state.effect) ? "solid" : undefined;
-  setState(effect ? { color, effect, on: true } : { color, on: true });
+  setPaletteColor(hsvToHex(h, s, 1));
   render();
 }
 
@@ -147,7 +182,54 @@ wheel.addEventListener("pointermove", (ev) => {
   if (wheel.hasPointerCapture(ev.pointerId)) pickFromWheel(ev);
 });
 
-// ---------- controls ----------
+// ---------- palette ----------
+
+const paletteEl = $("palette");
+function renderPalette(fx: Fx) {
+  selected = Math.min(selected, fx.palette.length - 1);
+  paletteEl.replaceChildren();
+  fx.palette.forEach((c, i) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "pc";
+    b.style.background = c;
+    b.setAttribute("aria-label", `Farbe ${i + 1}`);
+    b.setAttribute("aria-pressed", String(i === selected));
+    b.addEventListener("click", () => {
+      selected = i;
+      render();
+    });
+    if (i === selected && fx.palette.length > 1) {
+      const del = document.createElement("span");
+      del.className = "del";
+      del.textContent = "×";
+      del.setAttribute("role", "button");
+      del.setAttribute("aria-label", `Farbe ${i + 1} entfernen`);
+      del.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        setFx({ palette: fx.palette.filter((_, j) => j !== i) });
+        selected = Math.max(0, i - 1);
+        render();
+      });
+      b.append(del);
+    }
+    paletteEl.append(b);
+  });
+  if (fx.palette.length < PALETTE_MAX) {
+    const add = document.createElement("button");
+    add.type = "button";
+    add.className = "add";
+    add.textContent = "+";
+    add.setAttribute("aria-label", "Farbe hinzufügen");
+    add.addEventListener("click", () => {
+      const last = hexToHsv(fx.palette[fx.palette.length - 1]);
+      setFx({ palette: [...fx.palette, hsvToHex((last.h + 50) % 360, Math.max(0.6, last.s), 1)] });
+      selected = fx.palette.length;
+      render();
+    });
+    paletteEl.append(add);
+  }
+}
 
 const swatches = $("swatches");
 for (const c of SWATCHES) {
@@ -155,11 +237,28 @@ for (const c of SWATCHES) {
   b.style.background = c;
   b.setAttribute("aria-label", `Farbe ${c}`);
   b.addEventListener("click", () => {
-    setState({ color: c, on: true });
+    setPaletteColor(c);
     render();
   });
   swatches.append(b);
 }
+
+const presets = $("presets");
+for (const pr of PALETTE_PRESETS) {
+  const b = document.createElement("button");
+  b.type = "button";
+  const i = document.createElement("i");
+  i.style.background = pr.colors.length === 1 ? pr.colors[0] : `linear-gradient(90deg, ${pr.colors.join(", ")})`;
+  b.append(i, pr.name);
+  b.addEventListener("click", () => {
+    setFx({ palette: [...pr.colors] });
+    selected = 0;
+    render();
+  });
+  presets.append(b);
+}
+
+// ---------- effect ----------
 
 const effectsEl = $("effects");
 for (const e of EFFECTS) {
@@ -167,24 +266,107 @@ for (const e of EFFECTS) {
   b.textContent = e.name;
   b.dataset.id = e.id;
   b.addEventListener("click", () => {
-    setState({ effect: e.id, on: true });
+    if (e.id === "strobo") {
+      // Starts the strobe, or starts it over; it returns to the current effect by itself.
+      send({ t: "run" });
+      if (snap) snap.state = mergeState(snap.state, { effect: "strobo", on: true });
+    } else {
+      setState({ effect: e.id, on: true });
+    }
     render();
   });
   effectsEl.append(b);
 }
+
+const variantsEl = $("variants");
+const paramsEl = $("params");
+let shownEffect: EffectId | null = null;
+
+// The sliders of the current effect: palette timing first, then the effect's own.
+function buildParams(id: EffectId) {
+  shownEffect = id;
+  const def = effectDef(id);
+  variantsEl.replaceChildren();
+  def.variants.forEach((name, i) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "chip";
+    b.textContent = name;
+    b.dataset.i = String(i);
+    b.addEventListener("click", () => {
+      setFx({ variant: i });
+      if (id === "strobo") send({ t: "run" });
+      render();
+    });
+    variantsEl.append(b);
+  });
+  paramsEl.replaceChildren();
+  const rows = [
+    { key: "period", label: "Farbwechsel alle", min: 3, max: 60, step: 1, unit: "s", top: true },
+    { key: "spread", label: "Verteilung über den Stab", min: 0, max: 100, step: 5, unit: "%", top: true },
+    ...def.params.map((p) => ({ ...p, top: false })),
+  ];
+  for (const r of rows) {
+    const label = document.createElement("label");
+    label.className = "slider";
+    label.dataset.key = r.key;
+    label.dataset.top = String(r.top);
+    const span = document.createElement("span");
+    const out = document.createElement("output");
+    span.append(r.label, " ", out);
+    const input = document.createElement("input");
+    input.type = "range";
+    input.min = String(r.min);
+    input.max = String(r.max);
+    input.step = String(r.step);
+    input.addEventListener("input", () => {
+      const v = Number(input.value);
+      setFx(r.top ? { [r.key]: v } : { p: { [r.key]: v } });
+      out.textContent = formatParam(v, r.unit);
+    });
+    label.dataset.unit = r.unit;
+    label.append(span, input);
+    paramsEl.append(label);
+  }
+  variantsEl.hidden = def.variants.length < 2;
+  $("whiteRow").hidden = id !== "strobo";
+}
+
+$<HTMLInputElement>("white").addEventListener("change", (ev) =>
+  setFx({ white: (ev.target as HTMLInputElement).checked }),
+);
+$("runStop").addEventListener("click", () => {
+  if (snap?.run) setState({ effect: snap.run.back });
+  render();
+});
+
+// The strobe's progress, counted on locally from the last snapshot.
+function renderRun() {
+  const run = snap?.run;
+  const box = $("run");
+  if (!snap || !run || snap.state.effect !== "strobo") {
+    box.hidden = true;
+    return;
+  }
+  const p = snap.state.fx.strobo.p;
+  const e = run.t + (performance.now() - runAt) / 1000;
+  const ramp = p.charge + p.build;
+  const back = effectDef(run.back).name;
+  let phase: string, rest: number;
+  if (e < ramp) [phase, rest] = ["Anlauf", ramp - e];
+  else if (e < ramp + p.hold) [phase, rest] = ["Strobo", ramp + p.hold - e];
+  else [phase, rest] = ["Ausklang", ramp + p.hold + p.after - e];
+  box.hidden = false;
+  $("runPhase").textContent = `${phase} · noch ${Math.max(0, Math.ceil(rest))} s`;
+  $("runSub").textContent = `danach zurück zu ${back}`;
+}
+setInterval(renderRun, 250);
 
 const bri = $<HTMLInputElement>("bri");
 bri.addEventListener("input", () => {
   setState({ bri: Number(bri.value), on: true });
   renderOutputs();
 });
-const speed = $<HTMLInputElement>("speed");
-speed.addEventListener("input", () => {
-  setState({ speed: Number(speed.value) });
-  renderOutputs();
-});
-const color2 = $<HTMLInputElement>("color2");
-color2.addEventListener("input", () => setState({ color2: color2.value.toUpperCase() }));
 
 $("power").addEventListener("click", () => {
   if (!snap) return;
@@ -226,27 +408,41 @@ function renderOutputs() {
   const pct = effectivePercent(snap.state.bri, snap.config.maxBri);
   const capped = snap.state.bri > snap.config.maxBri;
   $("briOut").textContent = `${pct} %${capped ? " (Grenze)" : ""}`;
-  $("speedOut").textContent = String(snap.state.speed);
 }
 
 function render() {
   if (!snap) return;
   const s = snap.state;
-  drawWheel(s.color);
+  const c = current()!;
+  renderPalette(c.fx);
+  drawWheel(c.fx.palette[selected] ?? c.fx.palette[0]);
   if (document.activeElement !== bri) bri.value = String(s.bri);
-  if (document.activeElement !== speed) speed.value = String(s.speed);
-  if (document.activeElement !== color2) color2.value = s.color2.toLowerCase();
   renderOutputs();
   $("power").setAttribute("aria-pressed", String(s.on));
   for (const b of effectsEl.querySelectorAll<HTMLButtonElement>("button"))
     b.setAttribute("aria-pressed", String(b.dataset.id === s.effect));
+
+  if (shownEffect !== c.id) buildParams(c.id);
+  for (const b of variantsEl.querySelectorAll<HTMLButtonElement>("button"))
+    b.setAttribute("aria-pressed", String(Number(b.dataset.i) === c.fx.variant));
+  for (const label of paramsEl.querySelectorAll<HTMLLabelElement>("label")) {
+    const key = label.dataset.key!;
+    const top = label.dataset.top === "true";
+    const v = top ? (c.fx[key as "period" | "spread"] as number) : c.fx.p[key];
+    const input = label.querySelector("input")!;
+    if (document.activeElement !== input) input.value = String(v);
+    label.querySelector("output")!.textContent =
+      key === "spread" && v === 0 ? "ganzer Stab gleich" : formatParam(v, label.dataset.unit!);
+    label.classList.toggle("dim", top && c.fx.palette.length === 1);
+  }
+  $<HTMLInputElement>("white").checked = c.fx.white !== false;
+  renderRun();
+
   snap.scenes.forEach((sc, i) => {
     const b = scenesEl.children[i] as HTMLButtonElement;
     b.dataset.empty = String(!sc);
-    (b.querySelector(".dot") as HTMLElement).style.background = sc ? sc.color : "transparent";
-    (b.lastElementChild as HTMLElement).textContent = sc
-      ? EFFECTS.find((e) => e.id === sc.effect)?.name ?? `Szene ${i + 1}`
-      : `Platz ${i + 1}`;
+    (b.querySelector(".dot") as HTMLElement).style.background = sc?.fx[sc.effect]?.palette[0] ?? "transparent";
+    (b.lastElementChild as HTMLElement).textContent = sc ? effectDef(sc.effect).name : `Platz ${i + 1}`;
   });
   const info = snap.info;
   $("info").textContent =

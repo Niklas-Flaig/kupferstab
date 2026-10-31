@@ -60,8 +60,16 @@ void fillFull(JsonDocument& doc) {
   stateToJson(store.state, doc["state"].to<JsonObject>());
   JsonArray scenes = doc["scenes"].to<JsonArray>();
   for (uint8_t i = 0; i < kSceneCount; i++) {
-    if (store.sceneUsed[i]) stateToJson(store.scenes[i], scenes.add<JsonObject>());
+    if (store.sceneUsed[i]) stateToJson(store.scenes[i], scenes.add<JsonObject>(), true);
     else scenes.add(nullptr);
+  }
+  float run = effects::runElapsed();
+  if (run >= 0) {
+    JsonObject r = doc["run"].to<JsonObject>();
+    r["t"] = run;
+    r["back"] = kEffects[store.back].id;
+  } else {
+    doc["run"] = nullptr;
   }
   configToJson(store.config, doc["config"].to<JsonObject>());
   JsonObject info = doc["info"].to<JsonObject>();
@@ -112,8 +120,13 @@ void handleMessage(AsyncWebSocketClient* client, const char* text, size_t len) {
       store.scenes[slot] = store.state;
       store.sceneUsed[slot] = true;
     } else if (strcmp(op, "apply") == 0 && store.sceneUsed[slot]) {
-      store.state = store.scenes[slot];
+      // A scene keeps only its own effect's settings; the other effects keep theirs.
+      const LightState& sc = store.scenes[slot];
       store.state.on = true;
+      store.state.bri = sc.bri;
+      store.state.effect = sc.effect;
+      store.state.fx[sc.effect] = sc.fx[sc.effect];
+      if (sc.effect == kStrobo) effects::restartRun();
     } else if (strcmp(op, "clear") == 0) {
       store.sceneUsed[slot] = false;
     }
@@ -131,6 +144,13 @@ void handleMessage(AsyncWebSocketClient* client, const char* text, size_t len) {
       reply(client, "notice", "Gespeichert. Der Stab startet neu, verbinde dich danach wieder.");
       restartAt = millis() + 2500;  // after the store was written
     }
+    broadcastDue = true;
+  } else if (strcmp(t, "run") == 0) {
+    // Starts the strobe, or starts it over when it already runs.
+    store.state.on = true;
+    if (store.state.effect == kStrobo) effects::restartRun();
+    else store.state.effect = kStrobo;
+    storeTouch();
     broadcastDue = true;
   } else if (strcmp(t, "test") == 0) {
     effects::runTest();
@@ -340,6 +360,7 @@ void loop() {
   MDNS.update();
   ArduinoOTA.handle();
 
+  if (effects::takeChange()) broadcastDue = true;
   if (broadcastDue && ws.availableForWriteAll()) {
     broadcastDue = false;
     ws.textAll(fullJson());

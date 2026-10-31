@@ -13,12 +13,24 @@ Kommt beim Verbinden und nach jeder Änderung an alle verbundenen Handys.
 ```json
 {
   "t": "state",
-  "state": { "on": true, "bri": 160, "effect": "rainbow", "speed": 50, "color": "#FF6A1F", "color2": "#1A0A00" },
-  "scenes": [{ "on": true, "bri": 160, "effect": "fire", "speed": 60, "color": "#FF6A1F", "color2": "#1A0A00" }, null, null, null],
+  "state": {
+    "on": true, "bri": 160, "effect": "atem",
+    "fx": {
+      "atem": { "variant": 0, "palette": ["#4A5BFF", "#14C9A8", "#B04CFF"], "period": 14, "spread": 35, "p": { "breath": 7, "wave": 4.5, "width": 12 } },
+      "strobo": { "variant": 0, "palette": ["#14C9A8", "#2A5BFF"], "period": 10, "spread": 90, "p": { "charge": 2, "build": 4, "hold": 5, "after": 5 }, "white": true },
+      "glut": { "…": "…" }, "polarlicht": { "…": "…" }, "funkenflug": { "…": "…" }, "mosaik": { "…": "…" }
+    }
+  },
+  "scenes": [{ "on": true, "bri": 160, "effect": "glut", "fx": { "glut": { "variant": 0, "palette": ["#FF6A1F"], "period": 12, "spread": 30, "p": { "tempo": 50 } } } }, null, null, null],
+  "run": null,
   "config": { "leds": 164, "fold": 50, "tip": true, "pin": 2, "order": "GRB", "maxBri": 102, "apSsid": "Kupferstab", "staSsid": "" },
   "info": { "fw": "0.1.0", "heap": 23456, "uptime": 42, "apIp": "192.168.4.1", "staIp": "", "update": "", "clients": 1, "app": true }
 }
 ```
+
+Eine gespeicherte Szene enthält nur die Einstellungen ihres eigenen Effekts; beim Abrufen behalten
+die anderen Effekte ihre. `run` ist `{ "t": 3.2, "back": "atem" }`, solange Strobo läuft: Sekunden
+seit dem Start und der Effekt, in den Strobo danach zurückspringt.
 
 Passwörter schickt der Stab nie zurück. `info.update` ist eine neuere Version auf GitHub, leer wenn
 keine da ist oder noch nicht geprüft wurde.
@@ -34,7 +46,8 @@ keine da ist oder noch nicht geprüft wurde.
 | Nachricht | Wirkung |
 | --- | --- |
 | `{"t":"get"}` | Stab antwortet mit `state` |
-| `{"t":"set","state":{…}}` | übernimmt die vorhandenen Felder von `state` |
+| `{"t":"set","state":{…}}` | übernimmt die vorhandenen Felder von `state`; `fx` wird Feld für Feld gemischt, z. B. `{"fx":{"glut":{"p":{"tempo":80}}}}` |
+| `{"t":"run"}` | startet Strobo, oder startet es neu, wenn es schon läuft |
 | `{"t":"scene","slot":0,"op":"save"}` | legt den aktuellen Stand auf Platz 0–3; `op` auch `apply` und `clear` |
 | `{"t":"config","config":{…}}` | Einstellungen; `pin`, `leds`, `fold`, `tip` und `order` wirken sofort (mit Test-Lauflicht), WLAN- und Passwort-Felder starten den Stab neu |
 | `{"t":"test"}` | spielt das Test-Lauflicht |
@@ -48,9 +61,16 @@ keine da ist oder noch nicht geprüft wurde.
 | --- | --- |
 | `on` | `true` / `false` |
 | `bri` | 0–255, gedeckelt durch `maxBri` |
-| `effect` | `solid`, `rainbow`, `breathe`, `chase`, `sparkle`, `fire`, `colorloop`, `strobe` |
-| `speed` | 1–100 |
-| `color`, `color2` | `#RRGGBB`; `color2` ist der Hintergrund bei `chase` und `sparkle` |
+| `effect` | `atem`, `strobo`, `glut`, `polarlicht`, `funkenflug`, `mosaik` |
+| `fx.<effect>.variant` | `atem`: 0 Atem + Welle, 1 Gezeiten, 2 Nebel · `strobo`: 0 Immer schneller, 1 Herzschlag · `mosaik`: 0 Kacheln, 1 Funkeln, 2 Scherben · sonst 0 |
+| `fx.<effect>.palette` | 1–6 × `#RRGGBB` |
+| `fx.<effect>.period` | 3–60 s je Palettenfarbe |
+| `fx.<effect>.spread` | 0–100 %, wie weit sich die Palette über den Stab verteilt |
+| `fx.atem.p` | `breath` 3–14 s, `wave` 1,5–12 s, `width` 4–30 % |
+| `fx.strobo.p` | `charge` 0–20 s (Aufladen bis zur Spitze), `build` 3–20 s (Aufbau danach), `hold` 0–20 s (Strobo voll an), `after` 2–15 s (Ausklang) |
+| `fx.strobo.white` | Blitze in Weiß statt in den Palettenfarben |
+| `fx.glut.p`, `fx.polarlicht.p`, `fx.funkenflug.p` | `tempo` 5–100 % |
+| `fx.mosaik.p` | `tempo` 5–100 %, `density` 5–100 % |
 | `leds` | 1–600, alle Pixel auf dem Strip |
 | `fold` | 0–300, Pixel je Lage der Doppellage oben; 0 für einen geraden Strip |
 | `tip` | `true` / `false`: ein Pixel zwischen Hin- und Rückweg. Passen zwei Lagen und Spitze nicht auf `leds`, gilt der Strip als gerade |

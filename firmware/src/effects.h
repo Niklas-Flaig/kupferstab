@@ -13,6 +13,12 @@ void reconfigure();
 void runTest();
 // Turns all LEDs off right away, e.g. before an update.
 void blackout();
+// Starts the strobe run over (the effect must already be strobo).
+void restartRun();
+// Seconds since the strobe run started, or -1 when no strobe runs.
+float runElapsed();
+// True once after the effects changed the state themselves (the strobe returning).
+bool takeChange();
 // Renders a frame when one is due; call from loop().
 void loop();
 

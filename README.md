@@ -126,6 +126,25 @@ wieder herunter. Die Effekte laufen vom Fuß zur Spitze; der Rückweg leuchtet g
 Pixel `63 + i` und `163 − i` liegen übereinander und zeigen dieselbe Farbe. Mit 164 LEDs,
 50 Pixeln Doppellage und Spitze laufen die Effekte über 114 Pixel.
 
+Funken folgen dagegen dem Strip selbst, weil das Ende des Stabs gebogen ist: Bei **Glut** fliegt ab
+und zu ein Funke von Pixel 113 bis 163 und verglimmt, bei **Funkenflug** steigen Funken von Pixel 0
+und von Pixel 113 zu Pixel 50 auf, dem höchsten Punkt (`kHighestPixel` in `firmware/src/config.h`).
+
+## Effekte
+
+| Effekt | Was er tut |
+| --- | --- |
+| Atem & Welle | Der Stab atmet, dazu läuft eine Welle hoch. Varianten: Atem + Welle, Gezeiten, Nebel |
+| Strobo | Lädt sich vom Fuß zur Spitze auf, pulsiert immer schneller bis zum Strobo, klingt aus und springt in den Effekt davor zurück. Varianten: Immer schneller, Herzschlag |
+| Glut | Glimmt wie Kohle, ab und zu fliegt ein Funke |
+| Polarlicht | Lichtvorhänge ziehen langsam über den Stab |
+| Funkenflug | Funken steigen zum höchsten Punkt auf, der kurz aufleuchtet |
+| Mosaik | Farbflecken aus der Palette. Varianten: Kacheln, Funkeln, Scherben |
+
+Jeder Effekt hat eine eigene **Farbpalette** mit 1 bis 6 Farben: Tippe eine Farbe der Palette an
+und wähle sie im Farbrad. „Farbwechsel alle“ legt fest, wie lange jede Farbe bleibt, „Verteilung“,
+wie viele davon gleichzeitig über den Stab liegen.
+
 ## Einstellungen
 
 Alles in der App unter **Einstellungen**, ohne neu zu flashen:

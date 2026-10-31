@@ -205,7 +205,7 @@ input[type="range"] {
 
 .effects {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
 }
 .effects button,
@@ -226,17 +226,107 @@ input[type="range"] {
   color: var(--copper-ink);
   font-weight: 700;
 }
-.second {
+.palette {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.palette .pc {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 3px solid var(--line);
+}
+.palette .pc[aria-pressed="true"] {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 2px var(--copper);
+}
+.palette .del {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1;
+  padding: 0;
+}
+.palette .add {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px dashed var(--muted);
+  background: transparent;
+  color: var(--ink);
+  font-size: 20px;
+}
+.presets {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.presets button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--bg);
+  padding: 4px 10px 4px 4px;
+  font-size: 13px;
+}
+.presets i {
+  width: 30px;
+  height: 14px;
+  border-radius: 999px;
+}
+.variants {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.params {
+  display: grid;
+  gap: 12px;
+}
+.params .dim {
+  opacity: 0.5;
+}
+.run {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--copper);
+  border-radius: 12px;
+}
+.run div {
+  display: grid;
+  font-size: 14px;
+}
+.run span {
+  color: var(--muted);
+  font-size: 13px;
+}
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 14px;
   color: var(--muted);
 }
-.second small {
-  display: block;
-  font-size: 12px;
+.check input {
+  accent-color: var(--copper);
+  width: 18px;
+  height: 18px;
 }
 input[type="color"] {
   width: 52px;

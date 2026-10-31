@@ -2,8 +2,28 @@
 
 #include <EEPROM.h>
 
-const char* const kEffectIds[kEffectCount] = {
-    "solid", "rainbow", "breathe", "chase", "sparkle", "fire", "colorloop", "strobe"};
+const EffectDef kEffects[kEffectCount] = {
+    {"atem", 3, 3, {{"breath", 3, 14, 7}, {"wave", 1.5, 12, 4.5}, {"width", 4, 30, 12}}, 3,
+     {0x4A5BFF, 0x14C9A8, 0xB04CFF}, 14, 35},
+    {"strobo", 2, 4, {{"charge", 0, 20, 2}, {"build", 3, 20, 4}, {"hold", 0, 20, 5}, {"after", 2, 15, 5}}, 2,
+     {0x14C9A8, 0x2A5BFF}, 10, 90},
+    {"glut", 1, 1, {{"tempo", 5, 100, 50}}, 1, {0xFF6A1F}, 12, 30},
+    {"polarlicht", 1, 1, {{"tempo", 5, 100, 50}}, 1, {0xFF6A1F}, 12, 30},
+    {"funkenflug", 1, 1, {{"tempo", 5, 100, 50}}, 1, {0xFF6A1F}, 12, 30},
+    {"mosaik", 3, 2, {{"tempo", 5, 100, 50}, {"density", 5, 100, 50}}, 4,
+     {0xFF2A6D, 0xB04CFF, 0x2A5BFF, 0x14C9A8}, 16, 50},
+};
+
+void fxDefaults(uint8_t effect, FxSettings& f) {
+  const EffectDef& d = kEffects[effect];
+  f.variant = 0;
+  f.paletteLen = d.paletteLen;
+  for (uint8_t i = 0; i < kPaletteMax; i++) f.palette[i] = i < d.paletteLen ? d.palette[i] : 0;
+  f.period = d.period;
+  f.spread = d.spread;
+  for (uint8_t i = 0; i < kFxParams; i++) f.p[i] = i < d.params ? d.p[i].def : 0;
+  f.white = true;
+}
 
 Store store;
 
@@ -22,10 +42,12 @@ void storeToJson(JsonDocument& doc) {
   c["apPass"] = store.config.apPass;
   c["staPass"] = store.config.staPass;
   c["otaPass"] = store.config.otaPass;
-  stateToJson(store.state, doc["state"].to<JsonObject>());
+  JsonObject state = doc["state"].to<JsonObject>();
+  stateToJson(store.state, state);
+  if (store.state.effect == kStrobo) state["effect"] = kEffects[store.back].id;
   JsonArray scenes = doc["scenes"].to<JsonArray>();
   for (uint8_t i = 0; i < kSceneCount; i++) {
-    if (store.sceneUsed[i]) stateToJson(store.scenes[i], scenes.add<JsonObject>());
+    if (store.sceneUsed[i]) stateToJson(store.scenes[i], scenes.add<JsonObject>(), true);
     else scenes.add(nullptr);
   }
 }
@@ -63,7 +85,7 @@ void storeLoad() {
   configFromJson(store.config, doc["config"], ignored);
   stateFromJson(store.state, doc["state"]);
   JsonArrayConst scenes = doc["scenes"];
-  for (uint8_t i = 0; i < kSceneCount && i < scenes.size(); i++) {
+  for (uint8_t i = 0; i < kSceneCount && i < (int)scenes.size(); i++) {
     store.sceneUsed[i] = scenes[i].is<JsonObjectConst>();
     if (store.sceneUsed[i]) stateFromJson(store.scenes[i], scenes[i]);
   }
@@ -84,7 +106,7 @@ void storeLoop() {
 int effectIndex(const char* id) {
   if (!id) return -1;
   for (uint8_t i = 0; i < kEffectCount; i++)
-    if (strcmp(id, kEffectIds[i]) == 0) return i;
+    if (strcmp(id, kEffects[i].id) == 0) return i;
   return -1;
 }
 
@@ -103,13 +125,52 @@ bool hexToColor(const char* hex, uint32_t& out) {
   return true;
 }
 
-void stateToJson(const LightState& s, JsonObject o) {
+namespace {
+
+float clampf(float v, float lo, float hi) { return v < lo ? lo : v > hi ? hi : v; }
+
+void fxToJson(uint8_t e, const FxSettings& f, JsonObject o) {
+  o["variant"] = f.variant;
+  JsonArray pal = o["palette"].to<JsonArray>();
+  for (uint8_t i = 0; i < f.paletteLen; i++) pal.add(colorToHex(f.palette[i]));
+  o["period"] = f.period;
+  o["spread"] = f.spread;
+  JsonObject p = o["p"].to<JsonObject>();
+  for (uint8_t i = 0; i < kEffects[e].params; i++) p[kEffects[e].p[i].key] = f.p[i];
+  if (e == kStrobo) o["white"] = f.white;
+}
+
+void fxFromJson(uint8_t e, FxSettings& f, JsonObjectConst o) {
+  const EffectDef& d = kEffects[e];
+  if (o["variant"].is<int>()) f.variant = constrain(o["variant"].as<int>(), 0, d.variants - 1);
+  JsonArrayConst pal = o["palette"];
+  if (!pal.isNull()) {
+    uint32_t colors[kPaletteMax];
+    uint8_t n = 0;
+    for (JsonVariantConst c : pal)
+      if (n < kPaletteMax && hexToColor(c.as<const char*>(), colors[n])) n++;
+    if (n) {
+      f.paletteLen = n;
+      for (uint8_t i = 0; i < n; i++) f.palette[i] = colors[i];
+    }
+  }
+  if (o["period"].is<float>()) f.period = clampf(o["period"], 3, 60);
+  if (o["spread"].is<float>()) f.spread = clampf(o["spread"], 0, 100);
+  JsonObjectConst p = o["p"];
+  for (uint8_t i = 0; i < d.params; i++)
+    if (p[d.p[i].key].is<float>()) f.p[i] = clampf(p[d.p[i].key], d.p[i].min, d.p[i].max);
+  if (o["white"].is<bool>()) f.white = o["white"];
+}
+
+}  // namespace
+
+void stateToJson(const LightState& s, JsonObject o, bool activeOnly) {
   o["on"] = s.on;
   o["bri"] = s.bri;
-  o["effect"] = kEffectIds[s.effect < kEffectCount ? s.effect : 0];
-  o["speed"] = s.speed;
-  o["color"] = colorToHex(s.color);
-  o["color2"] = colorToHex(s.color2);
+  o["effect"] = kEffects[s.effect < kEffectCount ? s.effect : 0].id;
+  JsonObject fx = o["fx"].to<JsonObject>();
+  for (uint8_t e = 0; e < kEffectCount; e++)
+    if (!activeOnly || e == s.effect) fxToJson(e, s.fx[e], fx[kEffects[e].id].to<JsonObject>());
 }
 
 void stateFromJson(LightState& s, JsonObjectConst o) {
@@ -120,10 +181,9 @@ void stateFromJson(LightState& s, JsonObjectConst o) {
     int i = effectIndex(o["effect"]);
     if (i >= 0) s.effect = i;
   }
-  if (o["speed"].is<int>()) s.speed = constrain(o["speed"].as<int>(), 1, 100);
-  uint32_t c;
-  if (hexToColor(o["color"], c)) s.color = c;
-  if (hexToColor(o["color2"], c)) s.color2 = c;
+  JsonObjectConst fx = o["fx"];
+  for (uint8_t e = 0; e < kEffectCount; e++)
+    if (fx[kEffects[e].id].is<JsonObjectConst>()) fxFromJson(e, s.fx[e], fx[kEffects[e].id]);
 }
 
 uint16_t logicalLeds(const Config& c) { return c.leds - c.fold; }

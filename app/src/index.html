@@ -31,7 +31,10 @@
     <main>
       <section class="panel color">
         <canvas id="wheel" width="560" height="560" aria-label="Farbrad"></canvas>
+        <div class="palette" id="palette" role="group" aria-label="Farbpalette"></div>
+        <p class="hint" id="paletteHint">Tippe eine Farbe der Palette an und wähle sie im Farbrad. Mehrere Farben wechseln sich ab.</p>
         <div class="swatches" id="swatches"></div>
+        <div class="presets" id="presets"></div>
         <label class="slider">
           <span>Helligkeit <output id="briOut"></output></span>
           <input type="range" id="bri" min="1" max="255" />
@@ -41,13 +44,17 @@
       <section class="panel">
         <h2>Effekt</h2>
         <div class="effects" id="effects"></div>
-        <label class="slider">
-          <span>Tempo <output id="speedOut"></output></span>
-          <input type="range" id="speed" min="1" max="100" />
-        </label>
-        <label class="second">
-          <span>Zweite Farbe <small>für Lauflicht und Funkeln</small></span>
-          <input type="color" id="color2" />
+        <div class="run" id="run" hidden>
+          <div>
+            <strong id="runPhase"></strong>
+            <span id="runSub"></span>
+          </div>
+          <button class="chip" id="runStop" type="button">Abbrechen</button>
+        </div>
+        <div class="variants" id="variants" role="group" aria-label="Variante"></div>
+        <div class="params" id="params"></div>
+        <label class="check" id="whiteRow" hidden>
+          <input type="checkbox" id="white" /> Blitze in Weiß statt in den Palettenfarben
         </label>
       </section>
 

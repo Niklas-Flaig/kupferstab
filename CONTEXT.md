@@ -6,8 +6,10 @@
 | --- | --- |
 | **Stab** | Der Kupferstab mit Wemos D1 mini (ESP8266) und NeoPixel-Strip (WS2812B) im Inneren. |
 | **App** | Die Handy-Seite, die der Stab selbst ausliefert. Lässt sich zum Home-Bildschirm hinzufügen (PWA ohne Service Worker, weil der Stab nur HTTP spricht). |
-| **Zustand** (`state`) | Was das Licht gerade tut: an/aus, Helligkeit, Effekt, Tempo, zwei Farben. |
-| **Effekt** | Eine Animation der Firmware, z. B. Regenbogen oder Feuer. Die Liste steht in `kEffectIds` (Firmware) und `EFFECTS` (App), beide in derselben Reihenfolge. |
+| **Zustand** (`state`) | Was das Licht gerade tut: an/aus, Helligkeit, Effekt und die Einstellungen jedes Effekts (`fx`). |
+| **Effekt** | Eine Animation der Firmware: Atem & Welle, Strobo, Glut, Polarlicht, Funkenflug, Mosaik. Die Liste mit Varianten und Reglern steht in `kEffects` (Firmware) und `EFFECTS` (App), beide in derselben Reihenfolge. |
+| **Farbpalette** | 1 bis 6 Farben je Effekt, die sich abwechseln (`period`) und über den Stab verteilen (`spread`). |
+| **Strobo-Lauf** (`run`) | Strobo läuft einmal durch (Anlauf, Strobo, Ausklang) und springt dann in den Effekt zurück, der vorher lief. |
 | **Szene** | Ein gespeicherter Zustand auf einem von vier Plätzen. |
 | **Einstellungen** (`config`) | Hardware und Netz: LED-Anzahl und Layout, Pin, Farbreihenfolge, Helligkeitsgrenze, WLAN. |
 | **Captive Portal** | Der Stab beantwortet jede DNS-Anfrage mit seiner eigenen IP. Dadurch öffnet das Handy beim Verbinden die App von selbst. |
