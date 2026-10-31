@@ -9,7 +9,7 @@
 | **Zustand** (`state`) | Was das Licht gerade tut: an/aus, Helligkeit, Effekt, Tempo, zwei Farben. |
 | **Effekt** | Eine Animation der Firmware, z. B. Regenbogen oder Feuer. Die Liste steht in `kEffectIds` (Firmware) und `EFFECTS` (App), beide in derselben Reihenfolge. |
 | **Szene** | Ein gespeicherter Zustand auf einem von vier Plätzen. |
-| **Einstellungen** (`config`) | Hardware und Netz: LED-Anzahl, Pin, Farbreihenfolge, Helligkeitsgrenze, WLAN. |
+| **Einstellungen** (`config`) | Hardware und Netz: LED-Anzahl und Layout, Pin, Farbreihenfolge, Helligkeitsgrenze, WLAN. |
 | **Captive Portal** | Der Stab beantwortet jede DNS-Anfrage mit seiner eigenen IP. Dadurch öffnet das Handy beim Verbinden die App von selbst. |
 | **Release** | Eine Version auf GitHub, gebaut von `.github/workflows/release.yml`: signierte Firmware, die App-Dateien einzeln, `manifest.json` mit Signatur. Der Stab prüft und installiert sie selbst (`selfupdate.*`), sobald er im Heim-WLAN ist. |
 | **Notfall-Seite** | `/update`, fest in der Firmware. Darüber geht ein Update auch ohne App. |

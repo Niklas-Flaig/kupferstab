@@ -24,7 +24,9 @@ export interface LightState {
 }
 
 export interface Config {
-  leds: number;
+  leds: number; // physical pixels
+  fold: number; // pixels per layer of the fold at the top, 0 for a plain strip
+  tip: boolean; // one pixel between the two layers
   pin: number;
   order: "GRB" | "RGB";
   maxBri: number;
@@ -157,6 +159,21 @@ export function hexToHsv(hex: string): { h: number; s: number; v: number } {
 }
 
 /** Brightness as the staff will show it, in percent of full. */
+// How the strip splits up, as the staff renders it (firmware/src/effects.cpp). Null when the
+// fold does not fit; the staff then treats the strip as plain.
+export function layout(leds: number, fold: number, tip: boolean) {
+  const straight = leds - 2 * fold - (tip ? 1 : 0);
+  if (straight < 0) return null;
+  return { straight, fold, tip, logical: leds - fold };
+}
+
+export function layoutText(leds: number, fold: number, tip: boolean) {
+  const l = layout(leds, fold, tip);
+  if (!l) return `Passt nicht: zwei Lagen à ${fold}${tip ? " plus Spitze" : ""} sind mehr als ${leds} LEDs.`;
+  if (!fold) return `Ein gerader Strip, die Effekte laufen über alle ${leds} LEDs.`;
+  return `${l.straight} gerade, ${fold} doppelt${tip ? ", 1 Spitze" : ""}: die Effekte laufen über ${l.logical} Pixel, die zweite Lage leuchtet gespiegelt mit.`;
+}
+
 export const effectivePercent = (bri: number, maxBri: number) =>
   Math.round((Math.min(bri, maxBri) / 255) * 100);
 

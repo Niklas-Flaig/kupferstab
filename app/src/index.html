@@ -73,6 +73,15 @@
         <fieldset>
           <legend>LED-Strip</legend>
           <label>Anzahl LEDs <input type="number" id="leds" min="1" max="600" required /></label>
+          <label>Doppellage, Pixel je Lage <input type="number" id="fold" min="0" max="300" required /></label>
+          <label>
+            Spitze
+            <select id="tip">
+              <option value="1">1 Pixel zwischen den Lagen</option>
+              <option value="0">keine</option>
+            </select>
+          </label>
+          <p class="hint" id="layoutHint"></p>
           <label>
             Daten-Pin
             <select id="pin"></select>

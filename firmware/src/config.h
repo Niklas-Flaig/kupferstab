@@ -21,7 +21,12 @@ struct LightState {
 // Hardware and network settings. Stored apart from LittleFS, so a filesystem
 // update never wipes them.
 struct Config {
-  uint16_t leds = 60;
+  uint16_t leds = 164;   // physical pixels on the strip
+  // The strip runs straight up, then folds back down beside itself: `fold` pixels up, an
+  // optional single tip pixel, `fold` pixels down. Effects see the straight part, one layer of
+  // the fold and the tip; the way down mirrors the way up. fold 0 means a plain strip.
+  uint16_t fold = 50;
+  bool tip = true;
   uint8_t pin = 2;       // GPIO number; 2 is D4 on the D1 mini
   bool rgbOrder = false; // false: GRB (WS2812B), true: RGB
   uint8_t maxBri = 102;  // 40 %
@@ -57,6 +62,9 @@ bool hexToColor(const char* hex, uint32_t& out);
 void stateToJson(const LightState& s, JsonObject o);
 // Applies the fields present in `o`; the rest stays.
 void stateFromJson(LightState& s, JsonObjectConst o);
+// Pixels the effects run over: the straight part, one layer of the fold, the tip.
+uint16_t logicalLeds(const Config& c);
+
 void configToJson(const Config& c, JsonObject o);  // passwords left out
 // Returns true when a field changed that needs a restart (Wi-Fi).
 bool configFromJson(Config& c, JsonObjectConst o, bool& ledsChanged);

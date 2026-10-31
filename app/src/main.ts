@@ -9,6 +9,7 @@ import {
   updateTarget,
   type ClientMessage,
   type ConfigPatch,
+  layoutText,
   type LightState,
   type Snapshot,
 } from "./protocol";
@@ -282,10 +283,21 @@ maxBri.addEventListener("input", () => {
   $("maxBriOut").textContent = `${Math.round((Number(maxBri.value) / 255) * 100)} %`;
 });
 
+const ledsIn = $<HTMLInputElement>("leds");
+const foldIn = $<HTMLInputElement>("fold");
+const tipSel = $<HTMLSelectElement>("tip");
+function showLayout() {
+  $("layoutHint").textContent = layoutText(Number(ledsIn.value), Number(foldIn.value), tipSel.value === "1");
+}
+for (const el of [ledsIn, foldIn, tipSel]) el.addEventListener("input", showLayout);
+
 function fillSettings() {
   if (!snap) return;
   const c = snap.config;
-  $<HTMLInputElement>("leds").value = String(c.leds);
+  ledsIn.value = String(c.leds);
+  foldIn.value = String(c.fold ?? 0); // older firmware sends no layout
+  tipSel.value = c.tip ? "1" : "0";
+  showLayout();
   pinSel.value = String(c.pin);
   $<HTMLSelectElement>("order").value = c.order;
   maxBri.value = String(c.maxBri);
@@ -318,7 +330,9 @@ $("saveSettings").addEventListener("click", () => {
   const form = $<HTMLFormElement>("settingsForm");
   if (!form.reportValidity()) return;
   const patch: ConfigPatch = {
-    leds: Number($<HTMLInputElement>("leds").value),
+    leds: Number(ledsIn.value),
+    fold: Number(foldIn.value),
+    tip: tipSel.value === "1",
     pin: Number(pinSel.value),
     order: $<HTMLSelectElement>("order").value as "GRB" | "RGB",
     maxBri: Number(maxBri.value),

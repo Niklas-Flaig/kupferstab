@@ -112,13 +112,29 @@ pio run -e ota -t upload          # Firmware, Passwort: kupferstab
 pio run -e ota -t uploadfs        # App
 ```
 
+## LED-Layout
+
+Der Strip läuft gerade nach oben, oben liegt er doppelt: hoch, über die Spitze, und daneben
+wieder herunter. Die Effekte laufen vom Fuß zur Spitze; der Rückweg leuchtet gespiegelt mit.
+
+```
+ 0 ──── gerade ──── 62 │ 63 ──── Hinweg ──── 112 ┐
+                       │                         113  Spitze
+                       │ 163 ─── Rückweg ─── 114 ┘
+```
+
+Pixel `63 + i` und `163 − i` liegen übereinander und zeigen dieselbe Farbe. Mit 164 LEDs,
+50 Pixeln Doppellage und Spitze laufen die Effekte über 114 Pixel.
+
 ## Einstellungen
 
 Alles in der App unter **Einstellungen**, ohne neu zu flashen:
 
 | Einstellung | Standard | Hinweis |
 | --- | --- | --- |
-| Anzahl LEDs | 60 | 1–600 |
+| Anzahl LEDs | 164 | 1–600, alle Pixel auf dem Strip |
+| Doppellage | 50 | Pixel je Lage oben am Stab; 0 für einen geraden Strip |
+| Spitze | 1 Pixel | der Pixel zwischen Hin- und Rückweg der Doppellage |
 | Daten-Pin | D4 (GPIO2) | „Nächsten Pin testen“ schaltet live um |
 | Farbreihenfolge | GRB | WS2812B ist GRB; wenn Rot und Grün vertauscht sind: RGB |
 | Helligkeitsgrenze | 40 % | schützt Netzteil und Powerbank |

@@ -4,6 +4,7 @@ import {
   encode,
   hexToHsv,
   hsvToHex,
+  layout,
   parseServerMessage,
   sanitizeState,
   updateTarget,
@@ -50,7 +51,7 @@ describe("messages", () => {
       t: "state",
       state: { on: true, bri: 10, effect: "solid", speed: 5, color: "#FF0000", color2: "#000000" },
       scenes: [null, null, null, null],
-      config: { leds: 60, pin: 2, order: "GRB", maxBri: 102, apSsid: "Kupferstab", staSsid: "" },
+      config: { leds: 164, fold: 50, tip: true, pin: 2, order: "GRB", maxBri: 102, apSsid: "Kupferstab", staSsid: "" },
       info: { fw: "0.1.0", heap: 20000, uptime: 3, apIp: "192.168.4.1", staIp: "", update: "", clients: 1, app: true },
     };
     expect(parseServerMessage(JSON.stringify(snap))?.t).toBe("state");
@@ -61,6 +62,12 @@ describe("messages", () => {
 });
 
 describe("helpers", () => {
+  test("layout splits the strip like the staff", () => {
+    expect(layout(164, 50, true)).toEqual({ straight: 63, fold: 50, tip: true, logical: 114 });
+    expect(layout(163, 50, false)).toEqual({ straight: 63, fold: 50, tip: false, logical: 113 });
+    expect(layout(60, 0, false)?.logical).toBe(60);
+    expect(layout(100, 50, true)).toBeNull();
+  });
   test("brightness shows the cap", () => {
     expect(effectivePercent(255, 102)).toBe(40);
     expect(effectivePercent(51, 255)).toBe(20);

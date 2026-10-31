@@ -8,7 +8,8 @@ namespace effects {
 void begin();
 // Re-creates the strip after a change of pin, LED count or colour order.
 void reconfigure();
-// A short copper chase over the whole strip, so you can see whether pin and LED count fit.
+// A short copper chase from the foot to the tip, so you can see whether pin, LED count and
+// fold fit.
 void runTest();
 // Turns all LEDs off right away, e.g. before an update.
 void blackout();

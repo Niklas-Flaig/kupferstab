@@ -126,8 +126,12 @@ void stateFromJson(LightState& s, JsonObjectConst o) {
   if (hexToColor(o["color2"], c)) s.color2 = c;
 }
 
+uint16_t logicalLeds(const Config& c) { return c.leds - c.fold; }
+
 void configToJson(const Config& c, JsonObject o) {
   o["leds"] = c.leds;
+  o["fold"] = c.fold;
+  o["tip"] = c.tip;
   o["pin"] = c.pin;
   o["order"] = c.rgbOrder ? "RGB" : "GRB";
   o["maxBri"] = c.maxBri;
@@ -143,6 +147,21 @@ bool configFromJson(Config& c, JsonObjectConst o, bool& ledsChanged) {
     uint16_t v = constrain(o["leds"].as<int>(), 1, 600);
     ledsChanged |= v != c.leds;
     c.leds = v;
+  }
+  if (o["fold"].is<int>()) {
+    uint16_t v = constrain(o["fold"].as<int>(), 0, 300);
+    ledsChanged |= v != c.fold;
+    c.fold = v;
+  }
+  if (o["tip"].is<bool>()) {
+    bool v = o["tip"];
+    ledsChanged |= v != c.tip;
+    c.tip = v;
+  }
+  // A fold that does not fit on the strip falls back to a plain strip.
+  if (2 * c.fold + (c.tip ? 1 : 0) > c.leds) {
+    c.fold = 0;
+    c.tip = false;
   }
   if (o["pin"].is<int>()) {
     uint8_t v = o["pin"].as<int>();

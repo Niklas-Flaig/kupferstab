@@ -41,24 +41,37 @@ uint32_t heatColor(uint8_t h) {
   return Adafruit_NeoPixel::Color(ramp, 0, 0);
 }
 
+// Effects work on logical pixels 0..logicalLeds()-1, from the foot to the tip. A logical
+// pixel on the fold lights both layers: the way up at the same index, the way down mirrored
+// from the strip's end.
+uint16_t foldStart = 0;  // first logical pixel of the fold
+
+void put(uint16_t i, uint32_t c) {
+  const Config& cfg = store.config;
+  strip.setPixelColor(i, c);
+  if (i >= foldStart && i < foldStart + cfg.fold) strip.setPixelColor(cfg.leds - 1 - (i - foldStart), c);
+}
+
+void fillAll(uint32_t c) { strip.fill(c); }
+
 void render(uint32_t now) {
   const LightState& s = store.state;
-  const uint16_t n = strip.numPixels();
+  const uint16_t n = logicalLeds(store.config);
   // speed 1..100 -> 0.05 .. 2 cycles per second
   const uint32_t step = (uint32_t)(65536.0f * (0.05f + 1.95f * (s.speed - 1) / 99.0f) * kFrameMs / 1000.0f);
   phase += step;
 
   switch (s.effect) {
     case 0:  // solid
-      strip.fill(s.color);
+      fillAll(s.color);
       break;
     case 1:  // rainbow along the staff
       for (uint16_t i = 0; i < n; i++)
-        strip.setPixelColor(i, strip.gamma32(strip.ColorHSV((phase + i * 65536UL / n) & 0xFFFF)));
+        put(i, strip.gamma32(strip.ColorHSV((phase + i * 65536UL / n) & 0xFFFF)));
       break;
     case 2: {  // breathe
       float x = (sinf((phase & 0xFFFF) * 2.0f * PI / 65536.0f) + 1.0f) / 2.0f;
-      strip.fill(scale(s.color, 8 + uint8_t(x * x * 247)));
+      fillAll(scale(s.color, 8 + uint8_t(x * x * 247)));
       break;
     }
     case 3: {  // chase: a comet with a fading tail over color2
@@ -66,8 +79,8 @@ void render(uint32_t now) {
       uint32_t head = ((phase & 0xFFFF) * (uint32_t)(n + len)) >> 16;
       for (uint16_t i = 0; i < n; i++) {
         int d = int(head) - int(i);
-        if (d >= 0 && d < len) strip.setPixelColor(i, blend(s.color2, s.color, 255 - d * 255 / len));
-        else strip.setPixelColor(i, s.color2);
+        if (d >= 0 && d < len) put(i, blend(s.color2, s.color, 255 - d * 255 / len));
+        else put(i, s.color2);
       }
       break;
     }
@@ -77,7 +90,7 @@ void render(uint32_t now) {
       for (uint16_t i = 0; i < n; i++) {
         level[i] = level[i] > fade ? level[i] - fade : 0;
         if (random(1000) < chance) level[i] = 255;
-        strip.setPixelColor(i, blend(s.color2, s.color, level[i]));
+        put(i, blend(s.color2, s.color, level[i]));
       }
       break;
     }
@@ -92,15 +105,15 @@ void render(uint32_t now) {
         uint16_t y = random(min<uint16_t>(7, n));
         level[y] = min(255, level[y] + (int)random(160, 255));
       }
-      for (uint16_t i = 0; i < n; i++) strip.setPixelColor(i, heatColor(level[i]));
+      for (uint16_t i = 0; i < n; i++) put(i, heatColor(level[i]));
       break;
     }
     case 6:  // colorloop: the whole staff in one colour that wanders
-      strip.fill(strip.gamma32(strip.ColorHSV(phase & 0xFFFF)));
+      fillAll(strip.gamma32(strip.ColorHSV(phase & 0xFFFF)));
       break;
     case 7: {  // strobe
       uint32_t period = 1000 / (1 + s.speed / 5);
-      strip.fill((now % period) < 30 ? s.color : 0);
+      fillAll((now % period) < 30 ? s.color : 0);
       break;
     }
   }
@@ -115,6 +128,7 @@ void reconfigure() {
   strip.setPin(c.pin);
   strip.begin();
   level.assign(c.leds, 0);
+  foldStart = c.leds - 2 * c.fold - (c.tip ? 1 : 0);
   strip.clear();
   strip.show();
 }
@@ -142,10 +156,12 @@ void loop() {
   const LightState& s = store.state;
 
   if (testUntil && (int32_t)(testUntil - now) > 0) {
-    uint16_t n = strip.numPixels();
+    // Over the logical pixels: with the layout right, both layers of the fold climb together
+    // and the tip lights last.
+    uint16_t n = logicalLeds(store.config);
     uint32_t lit = (uint32_t)(now - testStart) * n / kTestMs + 1;
     strip.setBrightness(min<uint8_t>(80, store.config.maxBri));
-    for (uint16_t i = 0; i < n; i++) strip.setPixelColor(i, i < lit ? kTestColor : 0);
+    for (uint16_t i = 0; i < n; i++) put(i, i < lit ? kTestColor : 0);
     strip.show();
     return;
   }

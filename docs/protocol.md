@@ -15,7 +15,7 @@ Kommt beim Verbinden und nach jeder Änderung an alle verbundenen Handys.
   "t": "state",
   "state": { "on": true, "bri": 160, "effect": "rainbow", "speed": 50, "color": "#FF6A1F", "color2": "#1A0A00" },
   "scenes": [{ "on": true, "bri": 160, "effect": "fire", "speed": 60, "color": "#FF6A1F", "color2": "#1A0A00" }, null, null, null],
-  "config": { "leds": 60, "pin": 2, "order": "GRB", "maxBri": 102, "apSsid": "Kupferstab", "staSsid": "" },
+  "config": { "leds": 164, "fold": 50, "tip": true, "pin": 2, "order": "GRB", "maxBri": 102, "apSsid": "Kupferstab", "staSsid": "" },
   "info": { "fw": "0.1.0", "heap": 23456, "uptime": 42, "apIp": "192.168.4.1", "staIp": "", "update": "", "clients": 1, "app": true }
 }
 ```
@@ -36,7 +36,7 @@ keine da ist oder noch nicht geprüft wurde.
 | `{"t":"get"}` | Stab antwortet mit `state` |
 | `{"t":"set","state":{…}}` | übernimmt die vorhandenen Felder von `state` |
 | `{"t":"scene","slot":0,"op":"save"}` | legt den aktuellen Stand auf Platz 0–3; `op` auch `apply` und `clear` |
-| `{"t":"config","config":{…}}` | Einstellungen; `pin`, `leds` und `order` wirken sofort (mit Test-Lauflicht), WLAN- und Passwort-Felder starten den Stab neu |
+| `{"t":"config","config":{…}}` | Einstellungen; `pin`, `leds`, `fold`, `tip` und `order` wirken sofort (mit Test-Lauflicht), WLAN- und Passwort-Felder starten den Stab neu |
 | `{"t":"test"}` | spielt das Test-Lauflicht |
 | `{"t":"reboot"}` | Neustart |
 | `{"t":"checkUpdate"}` | fragt GitHub (nur im Heim-WLAN); das Ergebnis kommt als `notice` und in `info.update` |
@@ -51,7 +51,9 @@ keine da ist oder noch nicht geprüft wurde.
 | `effect` | `solid`, `rainbow`, `breathe`, `chase`, `sparkle`, `fire`, `colorloop`, `strobe` |
 | `speed` | 1–100 |
 | `color`, `color2` | `#RRGGBB`; `color2` ist der Hintergrund bei `chase` und `sparkle` |
-| `leds` | 1–600 |
+| `leds` | 1–600, alle Pixel auf dem Strip |
+| `fold` | 0–300, Pixel je Lage der Doppellage oben; 0 für einen geraden Strip |
+| `tip` | `true` / `false`: ein Pixel zwischen Hin- und Rückweg. Passen zwei Lagen und Spitze nicht auf `leds`, gilt der Strip als gerade |
 | `pin` | GPIO 0, 1, 2, 3, 4, 5, 12, 13, 14, 15 |
 | `order` | `GRB` oder `RGB` |
 | `maxBri` | 10–255 |

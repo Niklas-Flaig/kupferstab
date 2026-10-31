@@ -30,7 +30,9 @@ const scenes: (LightState | null)[] = [
   null,
 ];
 let config: Config = {
-  leds: 60,
+  leds: 164,
+  fold: 50,
+  tip: true,
   pin: 2,
   order: "GRB",
   maxBri: 102,
